@@ -4,27 +4,39 @@
     "slug": "WorkNote",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "icon": "./assets/logoN.png",
+    "userInterfaceStyle": "dark",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/logoN.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0A1929"
     },
     "ios": {
       "supportsTablet": true
     },
     "android": {
+      "package": "com.workill3199.worknote",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+        "backgroundColor": "#0A1929"
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "firebase": {
+        "apiKey": "AIzaSyAhMnCNeVMx6FFN84CdfR_V1_4Gh4xJsWA",
+        "authDomain": "worknote001.firebaseapp.com",
+        "projectId": "worknote001",
+        "storageBucket": "worknote001.firebasestorage.app",
+        "messagingSenderId": "694544755481",
+        "appId": "1:694544755481:web:a927972f66a206e8827388",
+        "measurementId": "G-XDTSFYL695"
+      },
+      "eas": {
+        "projectId": "a7a26fa1-ca0d-4d12-93f6-2a1d4e3ee945"
+      }
     }
   }
 }

@@ -1,0 +1,33 @@
+export const darkColors = {
+  primary: '#1E88E5',
+  secondary: '#48BB78',
+  indigo: '#6366F1',
+  purple: '#8B5CF6',
+  pink: '#EC4899',
+  amber: '#F59E0B',
+  background: '#0A1929',
+  card: '#1A2E44',
+  text: '#FFFFFF',
+  mutedText: '#FFFFFF',
+  border: '#1F2A44',
+  success: '#48BB78',
+  error: '#E53E3E',
+  warning: '#F59E0B',
+};
+
+export const lightColors = {
+  primary: '#1976D2',
+  secondary: '#26A69A',
+  indigo: '#6366F1',
+  purple: '#8B5CF6',
+  pink: '#EC4899',
+  amber: '#F59E0B',
+  background: '#FFFFFF',
+  card: '#F8FAFC',
+  text: '#0F172A',
+  mutedText: '#64748B',
+  border: '#CBD5E1',
+  success: '#2EC1AC',
+  error: '#EF4444',
+  warning: '#F59E0B',
+};
