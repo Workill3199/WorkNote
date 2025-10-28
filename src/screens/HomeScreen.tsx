@@ -99,8 +99,7 @@ export default function HomeScreen({ navigation }: Props) {
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
         {/* AppBar superior */}
--        <View style={styles.headerRow}>
-+        <View style={styles.headerRow}>
+        <View style={styles.headerRow}>
            <Text style={[styles.greetingTitle, { color: colors.text }]}>¡Hola, {username}!</Text>
            <View style={styles.appbarAvatarWrap}>
              {photoURL ? (
@@ -138,7 +137,18 @@ export default function HomeScreen({ navigation }: Props) {
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.tileSmallFull, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => navigation.navigate('Courses')}>
+          <TouchableOpacity
+            style={[
+              styles.tileSmallFull,
+              {
+                backgroundColor: '#0A1733',
+                borderColor: '#2E5AA7',
+                borderWidth: 1,
+              },
+            ]}
+            onPress={() => navigation.navigate('Courses')}
+          >
+            <View style={[styles.cardAccent, { backgroundColor: '#0B1B3F' }]} />
             <Text style={[styles.tileTitle, { color: colors.text }]}>Carga Activa</Text>
             <View style={styles.tileSplitRow}>
               <View style={styles.tileSplitCol}>
@@ -150,21 +160,28 @@ export default function HomeScreen({ navigation }: Props) {
                 <Text style={[styles.tileSplitNumber, { color: colors.text }]}>{workshopsCount}</Text>
               </View>
             </View>
-+            <Text style={[styles.tileNote, { color: palette.mutedText, marginTop: 6 }]}>Total: {coursesCount + workshopsCount}</Text>
+            <Text style={[styles.tileNote, { color: palette.mutedText, marginTop: 6 }]}>Total: {coursesCount + workshopsCount}</Text>
           </TouchableOpacity>
 
--          <TouchableOpacity style={[styles.tileSmallFull, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => navigation.navigate('Students')}>
--            <Text style={[styles.tileTitle, { color: colors.text }]}>Estudiantes</Text>
--            <Text style={[styles.tileNote, { color: palette.mutedText }]}>{studentsCount} {studentsCount === 1 ? 'alumno activo' : 'alumnos activos'}</Text>
--          </TouchableOpacity>
-+          <TouchableOpacity style={[styles.tileSmallFull, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => navigation.navigate('Students')}>
-+            <Text style={[styles.tileTitle, { color: colors.text }]}>Estudiantes</Text>
-+            <Text style={[styles.tileNote, { color: palette.mutedText }]}>{studentsCount} {studentsCount === 1 ? 'alumno activo' : 'alumnos activos'}</Text>
-+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
-+              <MaterialCommunityIcons name="account-group" size={16} color={colors.primary} />
-+              <Text style={[styles.tileNote, { color: colors.primary, marginLeft: 6 }]}>Ver lista ›</Text>
-+            </View>
-+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.tileSmallFull,
+              {
+                backgroundColor: '#0A1733',
+                borderColor: '#2E5AA7',
+                borderWidth: 1,
+              },
+            ]}
+            onPress={() => navigation.navigate('Students')}
+          >
+            <View style={[styles.cardAccent, { backgroundColor: '#0B1B3F' }]} />
+            <Text style={[styles.tileTitle, { color: colors.text }]}>Estudiantes</Text>
+            <Text style={[styles.tileNote, { color: palette.mutedText }]}>{studentsCount} {studentsCount === 1 ? 'alumno activo' : 'alumnos activos'}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+              <MaterialCommunityIcons name="account-group" size={16} color={colors.primary} />
+              <Text style={[styles.tileNote, { color: '#2E5AA7', marginLeft: 6 }]}>Ver lista ›</Text>
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* Actividades próximas */}
@@ -220,20 +237,38 @@ function ActionRow({ colors, icon, title, subtitle, onPress }: { colors: any; ic
 }
 
 function UpcomingCard({ colors, title, proximity, timeLabel, category }: { colors: any; title: string; proximity: string; timeLabel?: string; category?: string }) {
-  const primaryNeonBg = 'rgba(25,118,210,0.18)';
-  const primaryNeonBorder = 'rgba(25,118,210,0.40)';
   return (
-    <View style={[styles.upcomingCard, { backgroundColor: colors.card, borderColor: colors.border, shadowColor: colors.primary, shadowOpacity: 0.35, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } }]}>
-      <View style={[styles.upcomingIconBubble, { backgroundColor: primaryNeonBg, borderColor: primaryNeonBorder, shadowColor: colors.primary, shadowOpacity: 0.9, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } }]}>
+    <View
+      style={[
+        styles.upcomingCard,
+        {
+          backgroundColor: '#0A1733',
+          borderColor: '#2E5AA7',
+          borderWidth: 1,
+        },
+      ]}
+    >
+      <View style={[styles.cardAccent, { backgroundColor: '#2E5AA7' }]} />
+      <View
+        style={[
+          styles.upcomingIconBubble,
+          {
+            backgroundColor: 'rgba(46,90,167,0.12)',
+            borderColor: '#2E5AA7',
+            borderWidth: 2,
+          },
+        ]}
+      >
         <MaterialCommunityIcons name="calendar" size={18} color="#fff" />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={[styles.upcomingTitle, { color: colors.text }]}>{title}</Text>
         <Text style={[styles.upcomingMeta, { color: colors.mutedText }]}>
-          {proximity}{timeLabel ? ` • ${timeLabel}` : ''}
+          {proximity}
+          {timeLabel ? ` • ${timeLabel}` : ''}
         </Text>
         {category ? (
-          <Text style={[styles.categoryChip, { color: colors.text, borderColor: colors.primary }]}>{category}</Text>
+          <Text style={[styles.categoryChip, { color: colors.text, borderColor: '#2E5AA7', backgroundColor: 'rgba(46,90,167,0.12)' }]}>{category}</Text>
         ) : null}
       </View>
     </View>
@@ -246,12 +281,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingTop: 0,
   },
-+  headerRow: {
-+    flexDirection: 'row',
-+    alignItems: 'center',
-+    justifyContent: 'space-between',
-+    marginTop: 12,
-+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 12,
+  },
   appbar: {
     height: 52,
     flexDirection: 'row',
@@ -509,6 +544,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 12,
     padding: 12,
+    overflow: 'hidden',
   },
   tileTitle: {
     fontSize: 14,
@@ -547,6 +583,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     width: '100%',
     marginBottom: 8,
+    overflow: 'hidden',
   },
   upcomingIconBubble: {
     width: 28,
@@ -555,6 +592,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
+  },
+  cardAccent: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 8,
+    shadowColor: '#2E5AA7',
+    shadowOpacity: 0.22,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 0 },
+    borderTopLeftRadius: 12,
+    borderBottomLeftRadius: 12,
+  },
+  categoryChip: {
+    marginTop: 6,
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    fontSize: 11,
+    fontWeight: '700',
   },
   upcomingMeta: {
     fontSize: 12,

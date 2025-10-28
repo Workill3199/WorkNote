@@ -79,7 +79,7 @@ function MainTabs() {
              shadowOpacity: 0.9,
              shadowRadius: 14,
              shadowOffset: { width: 0, height: 0 },
-+            transform: [{ translateX: -28 }],
+            transform: [{ translateX: -28 }],
            }}
          >
            <MaterialCommunityIcons name="plus" size={28} color="#fff" />
@@ -103,8 +103,8 @@ function AppNavigation() {
           headerTitleStyle: { fontFamily: fonts.bold },
         }}
       >
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Register" component={RegisterScreen} />
+        <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
         {/* Rutas internas usadas por acciones del Home */}
         <Stack.Screen name="Courses" component={CoursesListScreen} options={{ title: 'Cursos' }} />

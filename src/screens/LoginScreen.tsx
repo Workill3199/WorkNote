@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { signInWithEmailAndPassword } from 'firebase/auth';
@@ -46,9 +46,7 @@ export default function LoginScreen({ navigation }: Props) {
     <View style={[styles.container, { backgroundColor: colors.background }] }>
       {/* Logo superior */}
       <View style={styles.logoWrap}>
-        <View style={[styles.logoBadge, { backgroundColor: colors.text }]}> 
-          <MaterialCommunityIcons name="note-text-outline" size={24} color={colors.background} />
-        </View>
+        <Image source={require('../../assets/logoN.png')} style={styles.logoImage} resizeMode="contain" />
       </View>
 
       {/* Marca */}
@@ -115,7 +113,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logoWrap: { alignItems: 'center', marginBottom: 12 },
-  logoBadge: { width: 56, height: 56, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  logoImage: { width: 72, height: 72 },
   brand: { fontSize: 24, fontFamily: fonts.brand, textAlign: 'center', marginBottom: 8 },
   title: { fontSize: 28, fontFamily: fonts.brand, textAlign: 'center' },
   subtitle: { fontSize: 14, fontFamily: fonts.medium, textAlign: 'center', marginTop: 6, marginBottom: 18 },
