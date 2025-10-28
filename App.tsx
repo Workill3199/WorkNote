@@ -40,7 +40,7 @@ function MainTabs() {
       <Tab.Navigator
         screenOptions={({ route }) => ({
           headerShown: false,
-          tabBarStyle: { backgroundColor: darkColors.card, borderTopColor: darkColors.border },
+          tabBarStyle: { display: 'none' },
           tabBarActiveTintColor: darkColors.primary,
           tabBarInactiveTintColor: darkColors.mutedText,
           tabBarLabelStyle: { fontFamily: fonts.medium },
@@ -79,7 +79,7 @@ function MainTabs() {
              shadowOpacity: 0.9,
              shadowRadius: 14,
              shadowOffset: { width: 0, height: 0 },
-+            transform: [{ translateX: -28 }],
+             transform: [{ translateX: -28 }],
            }}
          >
            <MaterialCommunityIcons name="plus" size={28} color="#fff" />
@@ -99,7 +99,7 @@ function AppNavigation() {
       <Stack.Navigator
         screenOptions={{
           headerStyle: { backgroundColor: headerColors.card },
-          headerTintColor: headerColors.text,
+          headerTintColor: '#fff',
           headerTitleStyle: { fontFamily: fonts.bold },
         }}
       >
@@ -138,7 +138,10 @@ export default function App() {
     if (fontsLoaded) {
       const TextAny = Text as any;
       if (TextAny.defaultProps == null) TextAny.defaultProps = {};
-      TextAny.defaultProps.style = [TextAny.defaultProps.style, { fontFamily: fonts.regular, color: darkColors.text }];
+      TextAny.defaultProps.style = [
+        TextAny.defaultProps.style,
+        { fontFamily: fonts.regular, color: '#fff', fontSize: 18, lineHeight: 24 },
+      ];
     }
   }, [fontsLoaded]);
 
