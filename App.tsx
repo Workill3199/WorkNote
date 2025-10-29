@@ -34,7 +34,6 @@ const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 function MainTabs() {
-  const navigation = useNavigation<any>();
   const isWeb = Platform.OS === 'web';
   const [navOpacity, setNavOpacity] = React.useState(0.98);
   const [navBlur, setNavBlur] = React.useState(24);
@@ -126,7 +125,6 @@ function MainTabs() {
 }
 
 function AppNavigation() {
-  const { config } = useConfig();
   const theme = DarkThemeCustom;
   const headerColors = { card: darkColors.card, text: darkColors.text };
 

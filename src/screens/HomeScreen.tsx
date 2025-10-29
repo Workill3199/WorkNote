@@ -158,7 +158,7 @@ export default function HomeScreen({ navigation }: Props) {
   );
 
   const QuickActions = () => {
-    const rootNav = navigation.getParent()?.getParent();
+    const rootNav = navigation.getParent()
     const actions = [
       { icon: 'file-document', label: 'Nueva actividad', color: '#60A5FA', onPress: () => rootNav?.navigate('ActivityCreate') },
       { icon: 'calendar', label: 'Programar clase', color: '#A78BFA', onPress: () => rootNav?.navigate('Courses') },

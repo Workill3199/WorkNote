@@ -34,7 +34,6 @@ export default function ManagementCard({ title, details = [], onEdit, onDelete, 
       { backgroundColor: colors.card, borderColor: colors.border, transform: [{ scale: pressed ? 0.99 : 1 }] },
     ]}>
       <View style={[styles.accentBar, { backgroundColor: accentColor }]} />
-      <View style={[styles.accentGlow, { backgroundColor: accentColor }]} />
       <View style={styles.headerRow}>
         <View style={styles.headerLeft}>
           <View style={[styles.avatarBadge, { backgroundColor: accentColor }]}>

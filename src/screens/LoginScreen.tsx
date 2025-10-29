@@ -36,7 +36,8 @@ export default function LoginScreen({ navigation }: Props) {
       await signInWithEmailAndPassword(auth, email.trim(), password);
       navigation.replace('Main');
     } catch (e: any) {
-      setError(e?.message ?? 'Error al iniciar sesión');
+      setError('Email o contraseña incorrecta.');
+      console.log(e?.message)
     } finally {
       setLoading(false);
     }
