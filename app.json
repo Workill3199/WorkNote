@@ -1,6 +1,7 @@
 {
   "expo": {
     "name": "WorkNote",
+    "display": "standalone",
     "slug": "WorkNote",
     "version": "1.0.0",
     "orientation": "portrait",
