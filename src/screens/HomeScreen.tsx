@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Dimensions } from 'react-native';
-import { BlurView } from 'expo-blur';
+// import { BlurView } from 'expo-blur';
 import { useTheme } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -64,7 +64,7 @@ export default function HomeScreen({ navigation }: Props) {
 
   // Encabezado con blur
   const DashboardHeader = () => (
-    <BlurView intensity={40} tint="dark" style={[styles.header, { backgroundColor: 'rgba(0,0,0,0.4)' }]}> 
+    <View style={[styles.header, { backgroundColor: palette.card }]}> 
       <View style={styles.headerContent}>
         <View style={styles.userInfo}>
           <View style={styles.avatarContainer}>
@@ -86,7 +86,7 @@ export default function HomeScreen({ navigation }: Props) {
           <View style={styles.notificationDot} />
         </TouchableOpacity>
       </View>
-    </BlurView>
+    </View>
   );
 
   const StatsCards = () => {
@@ -158,11 +158,12 @@ export default function HomeScreen({ navigation }: Props) {
   );
 
   const QuickActions = () => {
+    const rootNav = navigation.getParent()?.getParent();
     const actions = [
-      { icon: 'file-document', label: 'Nueva actividad', color: '#60A5FA', onPress: () => navigation.getParent()?.navigate('ActivityCreate') },
-      { icon: 'calendar', label: 'Programar clase', color: '#A78BFA', onPress: () => navigation.getParent()?.navigate('Courses') },
-      { icon: 'account-group', label: 'Ver estudiantes', color: '#22D3EE', onPress: () => navigation.getParent()?.navigate('Students') },
-      { icon: 'chart-line', label: 'Analíticas', color: '#34D399', onPress: () => navigation.getParent()?.navigate('Activities') },
+      { icon: 'file-document', label: 'Nueva actividad', color: '#60A5FA', onPress: () => rootNav?.navigate('ActivityCreate') },
+      { icon: 'calendar', label: 'Programar clase', color: '#A78BFA', onPress: () => rootNav?.navigate('Courses') },
+      { icon: 'account-group', label: 'Ver estudiantes', color: '#22D3EE', onPress: () => rootNav?.navigate('Students') },
+      { icon: 'chart-line', label: 'Analíticas', color: '#34D399', onPress: () => rootNav?.navigate('Activities') },
     ];
 
     return (
@@ -214,24 +215,7 @@ export default function HomeScreen({ navigation }: Props) {
         <QuickActions />
         <UpcomingDeadlines />
       </ScrollView>
-      <BlurView intensity={30} tint="dark" style={[styles.bottomNav, { backgroundColor: 'rgba(0,0,0,0.35)', borderTopColor: palette.border }]}> 
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.getParent()?.navigate('Inicio')}>
-          <MaterialCommunityIcons name="home" size={22} color="#fff" />
-          <Text style={styles.navLabel}>Inicio</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.getParent()?.navigate('Clases')}>
-          <MaterialCommunityIcons name="file-document" size={22} color="#fff" />
-          <Text style={styles.navLabel}>Clases</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.getParent()?.navigate('Estudiantes')}>
-          <MaterialCommunityIcons name="account-group" size={22} color="#fff" />
-          <Text style={styles.navLabel}>Estudiantes</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.getParent()?.navigate('Ajustes')}>
-          <MaterialCommunityIcons name="dots-horizontal" size={22} color="#fff" />
-          <Text style={styles.navLabel}>Más</Text>
-        </TouchableOpacity>
-      </BlurView>
+      {/* Barra inferior personalizada eliminada para evitar duplicado con Tab Navigator */}
     </SafeAreaView>
   );
 }
@@ -428,9 +412,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
+    justifyContent: 'center',
+    paddingHorizontal: 8,
   },
   actionButton: {
-    width: (width - 64) / 2,
+    width: Math.min((width - 160) / 2, 360),
+    minWidth: 160,
     flexDirection: 'column',
     alignItems: 'center',
     gap: 8,

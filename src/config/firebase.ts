@@ -72,10 +72,12 @@ if (!hasConfig) {
 
   db = initializeFirestore(app, {
     experimentalForceLongPolling: Platform.OS !== 'web',
+    ...(Platform.OS === 'web' ? { experimentalAutoDetectLongPolling: true } : {}),
   });
   // En web: ajustar nivel de logs y habilitar persistencia
   if (typeof window !== 'undefined') {
-    setLogLevel(process.env.NODE_ENV === 'development' ? 'error' : 'silent');
+    // Reducir ruido de logs en desarrollo para errores de transporte abortados
+    setLogLevel(process.env.NODE_ENV === 'development' ? 'silent' : 'silent');
     (async () => {
       try {
         const { enableMultiTabIndexedDbPersistence } = await import('firebase/firestore');
