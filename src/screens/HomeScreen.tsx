@@ -410,10 +410,10 @@ const styles = StyleSheet.create({
   },
   actionsGrid: {
     flexDirection: 'row',
+    display: "flex",
     flexWrap: 'wrap',
     gap: 12,
     justifyContent: 'center',
-    paddingHorizontal: 8,
   },
   actionButton: {
     width: Math.min((width - 160) / 2, 360),

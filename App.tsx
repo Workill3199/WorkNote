@@ -59,6 +59,7 @@ function MainTabs() {
       <Tab.Navigator
         screenOptions={({ route }) => ({
           headerShown: false,
+          tabBarHideOnKeyboard: true,
           tabBarStyle: (
             Platform.OS === 'web'
               ? ({
@@ -76,7 +77,6 @@ function MainTabs() {
                   borderTopColor: 'rgba(255,255,255,0.1)', // border-white/10
                   borderTopWidth: 1,
                   boxShadow: '0 -4px 20px rgba(0,0,0,0.3)',
-                  height: 60,
                   paddingBottom: 10,
                   paddingTop: 10,
                 } as any)
@@ -90,9 +90,7 @@ function MainTabs() {
                   shadowRadius: 20,
                   shadowOffset: { width: 0, height: -4 },
                   elevation: 12,
-                  height: 60,
-                  paddingBottom: 10,
-                  paddingTop: 10,
+                  display:  "flex",
                 }
           ),
           tabBarItemStyle: { paddingVertical: 6 },
