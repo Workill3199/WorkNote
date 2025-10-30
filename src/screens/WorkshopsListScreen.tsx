@@ -73,8 +73,8 @@ export default function WorkshopsListScreen({ navigation }: Props) {
           variant="workshop"
           onEdit={() => navigation.navigate('WorkshopCreate', { editItem: item })}
           onDelete={() => onDelete(item.id)}
-          onViewStudents={() => navigation.navigate('StudentsList', { filterWorkshopId: item.id })}
-          onViewActivities={() => navigation.navigate('ActivitiesList', { filterWorkshopId: item.id })}
+          onViewStudents={() => navigation.navigate('Students', { filterWorkshopId: item.id })}
+          onViewActivities={() => navigation.navigate('Activities', { filterWorkshopId: item.id })}
         />
       ))}
     </View>
