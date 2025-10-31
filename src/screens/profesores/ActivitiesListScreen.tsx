@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, TextInput, Platform } from 'react-native';
 import { useTheme } from '@react-navigation/native';
-import { darkColors } from '../theme/colors';
+import { darkColors } from '../../theme/colors';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { listActivities, Activity, deleteActivity, listActivitiesByCourse, listActivitiesByWorkshop, updateActivity } from '../services/activities';
-import ManagementCard from '../components/ManagementCard';
-import NeonButton from '../components/NeonButton';
-import { listCourses, Course } from '../services/courses';
+import { listActivities, Activity, deleteActivity, listActivitiesByCourse, listActivitiesByWorkshop, updateActivity } from '../../services/activities';
+import ManagementCard from '../../components/ManagementCard';
+import NeonButton from '../../components/NeonButton';
+import { listCourses, Course, ensureCourseShareCode, getCourse } from '../../services/courses';
+import { auth } from '../../config/firebase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 type Props = NativeStackScreenProps<any>;
@@ -17,9 +18,14 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [codeOpen, setCodeOpen] = useState(false);
+  const [codeBusy, setCodeBusy] = useState(false);
+  const [codeValue, setCodeValue] = useState('');
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<'Todas' | 'Pendientes' | 'Completadas' | 'Vencidas' | 'Alta' | 'Media' | 'Baja'>('Todas');
   const courseTitleById = useMemo(() => Object.fromEntries(courses.map(c => [c.id!, c.title])), [courses]);
+  const filterCourseId = (route as any)?.params?.filterCourseId as string | undefined;
+  const selectedCourse = useMemo(() => courses.find(c => c.id === filterCourseId), [courses, filterCourseId]);
 
   // Tokens portados desde "actividades" basados en el tema oscuro
   const T = {
@@ -101,10 +107,7 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
         filter === 'Todas' ||
         (filter === 'Pendientes' && !item.completed) ||
         (filter === 'Completadas' && !!item.completed) ||
-        (filter === 'Vencidas' && isOverdue) ||
-        (filter === 'Alta' && item.priority === 'alta') ||
-        (filter === 'Media' && item.priority === 'media') ||
-        (filter === 'Baja' && item.priority === 'baja')
+        (filter === 'Vencidas' && isOverdue)
       );
       return matchesText && matchesFilter;
     });
@@ -153,6 +156,33 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
               textStyle={[styles.addText, { color: T.text }]}
             />
           )}
+          {!!filterCourseId && (
+            <NeonButton
+              title="Código"
+              onPress={async () => {
+                setCodeOpen(true);
+                setCodeBusy(true);
+                try {
+                  const course = await getCourse(filterCourseId);
+                  let code = course?.shareCode || '';
+                  if (!code) {
+                    code = await ensureCourseShareCode(filterCourseId);
+                    setCourses(prev => prev.map(c => c.id === filterCourseId ? { ...c, shareCode: code } as any : c));
+                  }
+                  setCodeValue(code);
+                } catch (e) {
+                  setCodeValue('');
+                } finally {
+                  setCodeBusy(false);
+                }
+              }}
+              colors={{ ...colors, primary: T.accent } as any}
+              shadowRadius={12}
+              elevation={6}
+              style={[styles.addBtn, { backgroundColor: T.accent }]}
+              textStyle={styles.addText}
+            />
+          )}
           <NeonButton
             title="+ Agregar"
             onPress={() => navigation.navigate('ActivityCreate')}
@@ -162,8 +192,38 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
             style={[styles.addBtn, { backgroundColor: T.primary }]}
             textStyle={styles.addText}
           />
+      </View>
+    </View>
+
+    {/* Popup de código de clase */}
+    {codeOpen && (
+      <View style={styles.codePopup}>
+        <View style={styles.codeRow}>
+          <MaterialCommunityIcons name="key" size={16} color={T.accent} />
+          <Text style={[styles.codeText, { color: T.text }]}>{codeBusy ? '...' : (codeValue || selectedCourse?.shareCode || '—')}</Text>
+          {Platform.OS === 'web' && (
+            <TouchableOpacity
+              style={[styles.copyBtn, { backgroundColor: T.primary }]}
+              onPress={async () => {
+                try {
+                  const toCopy = codeValue || selectedCourse?.shareCode || '';
+                  if (!toCopy) return;
+                  await (navigator as any)?.clipboard?.writeText(toCopy);
+                  Alert.alert('Copiado', 'Código copiado al portapapeles');
+                } catch {
+                  Alert.alert('Aviso', 'No se pudo copiar automáticamente');
+                }
+              }}
+            >
+              <Text style={styles.addText}>Copiar</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity onPress={() => setCodeOpen(false)}>
+            <MaterialCommunityIcons name="close" size={16} color={T.text} />
+          </TouchableOpacity>
         </View>
       </View>
+    )}
 
       {/* Barra de búsqueda (glass) */}
       <View style={styles.searchRow}>
@@ -186,13 +246,13 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
         </View>
       </View>
 
-      {/* Filtros horizontales */}
+      {/* Filtros horizontales - removidos filtros de prioridad */}
       <View style={styles.filtersRow}>
-        {(['Todas', 'Pendientes', 'Completadas', 'Vencidas', 'Alta', 'Media', 'Baja'] as const).map((f) => {
+        {(['Todas', 'Pendientes', 'Completadas', 'Vencidas'] as const).map((f) => {
           const active = filter === f;
           return (
-            <TouchableOpacity key={f} onPress={() => setFilter(f)} style={[styles.chip, active && styles.chipActive]} activeOpacity={0.8}>
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>{f}</Text>
+            <TouchableOpacity key={f} onPress={() => setFilter(f)} style={[styles.chip, active && styles.chipActive, { borderColor: T.accent }]} activeOpacity={0.8}>
+              <Text style={[styles.chipText, active && styles.chipTextActive, { color: active ? T.bg : T.text }]}>{f}</Text>
             </TouchableOpacity>
           );
         })}
@@ -307,4 +367,8 @@ const styles = StyleSheet.create({
   badge: { flexDirection: 'row', alignItems: 'center', gap: 6 as any, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7, borderWidth: 1.25 },
   badgeText: { fontSize: 12 },
   checkbox: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  codePopup: { position: 'absolute', top: 8, right: 16, borderRadius: 10, borderWidth: 1.5, borderColor: darkColors.border, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: Platform.OS === 'web' ? 'rgba(42,42,58,0.8)' : darkColors.card, ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' } as any) : {}), shadowColor: darkColors.accent, shadowOpacity: Platform.OS === 'web' ? 0 : 0.25, shadowRadius: 10, shadowOffset: { width: 0, height: 6 } },
+  codeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 as any },
+  codeText: { fontSize: 14, fontWeight: '700' },
+  copyBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
 });

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, TextInput, Platform } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { listCourses, Course, deleteCourse, joinCourseByShareCode } from '../../services/courses';
+import { listCourses, Course, deleteCourse, joinCourseByShareCode, ensureCourseShareCode } from '../../services/courses';
 import { auth } from '../../config/firebase';
 import { listStudentsByCourse } from '../../services/students';
 import ManagementCard from '../../components/ManagementCard';
@@ -196,7 +196,6 @@ export default function CoursesListScreen({ navigation }: Props) {
                   ...(item.classroom ? [{ icon: 'map-marker', text: `Aula: ${item.classroom}` }] : []),
                   ...(item.schedule ? [{ icon: 'clock-outline', text: `Horario: ${item.schedule}` }] : []),
                   ...(item.semester ? [{ icon: 'calendar-blank', text: `Semestre: ${item.semester}` }] : []),
-                  ...(item.shareCode && item.ownerId === (auth?.currentUser?.uid || '') ? [{ icon: 'key', text: `Código: ${item.shareCode}` }] : []),
                   { icon: 'account-group', text: `Estudiantes: ${studentCounts[item.id! ] || 0}` },
                 ]}
                 variant="course"
@@ -235,3 +234,19 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 },
   gridItem: { width: '50%', paddingHorizontal: 4 },
 });
+  const viewShareCode = async (courseId?: string) => {
+    if (!courseId) return;
+    try {
+      const code = await ensureCourseShareCode(courseId);
+      Alert.alert(
+        'Código de clase',
+        `Comparte este código para unirse: ${code}`,
+        [
+          { text: 'Copiar', onPress: async () => { try { if (Platform.OS === 'web') { await (navigator as any)?.clipboard?.writeText?.(code); } } catch {} } },
+          { text: 'Cerrar' },
+        ]
+      );
+    } catch (e: any) {
+      Alert.alert('Error', e?.message ?? 'No se pudo obtener el código de la clase');
+    }
+  };

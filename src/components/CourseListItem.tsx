@@ -14,9 +14,10 @@ type Props = {
   onPress?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  onShareCode?: () => void;
 };
 
-export default function CourseListItem({ title, classroom, schedule, semester, studentsCount = 0, variant = 'row', onPress, onEdit, onDelete }: Props) {
+export default function CourseListItem({ title, classroom, schedule, semester, studentsCount = 0, variant = 'row', onPress, onEdit, onDelete, onShareCode }: Props) {
   const initials = title
     .split(' ')
     .map((n) => n[0])
@@ -30,7 +31,7 @@ export default function CourseListItem({ title, classroom, schedule, semester, s
     return (
       <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={styles.touch}>
         <View style={styles.tileCard}>
-          {(onEdit || onDelete) && (
+          {(onEdit || onDelete || onShareCode) && (
             <View style={styles.tileActions}>
               {onEdit && (
                 <TouchableOpacity onPress={onEdit} style={styles.actionIconBtn}>
@@ -40,6 +41,11 @@ export default function CourseListItem({ title, classroom, schedule, semester, s
               {onDelete && (
                 <TouchableOpacity onPress={onDelete} style={styles.actionIconBtn}>
                   <MaterialCommunityIcons name="trash-can-outline" size={14} color="#d32f2f" />
+                </TouchableOpacity>
+              )}
+              {onShareCode && (
+                <TouchableOpacity onPress={onShareCode} style={styles.actionIconBtn}>
+                  <MaterialCommunityIcons name="key" size={14} color={darkColors.primary} />
                 </TouchableOpacity>
               )}
             </View>
@@ -68,6 +74,17 @@ export default function CourseListItem({ title, classroom, schedule, semester, s
                 <Text style={styles.metaText}>{studentsCount} estudiantes</Text>
               </View>
             </View>
+
+            {!!onShareCode && (
+              <View style={styles.tileBottomRow}>
+                <TouchableOpacity onPress={onShareCode}>
+                  <View style={styles.tileBottomPill}>
+                    <MaterialCommunityIcons name="key" size={14} color={darkColors.primary} />
+                    <Text style={styles.tileBottomText}>Código</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </View>
       </TouchableOpacity>
@@ -202,4 +219,7 @@ const styles = StyleSheet.create({
   },
   tileBadgeText: { color: darkColors.primary, fontSize: 10 },
   tileMeta: { marginTop: 8, width: '100%', gap: 6 as any },
+  tileBottomRow: { marginTop: 10, width: '100%', alignItems: 'center' },
+  tileBottomPill: { flexDirection: 'row', alignItems: 'center', gap: 6 as any, borderWidth: 1, borderColor: 'rgba(110,120,255,0.3)', backgroundColor: 'rgba(110,120,255,0.12)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
+  tileBottomText: { color: darkColors.primary, fontFamily: fonts.medium, fontSize: 12 },
 });

@@ -12,10 +12,11 @@ type Props = {
   onDelete?: () => void;
   onViewStudents?: () => void;
   onViewActivities?: () => void;
+  onViewShareCode?: () => void;
   variant?: 'course' | 'workshop' | 'activity' | 'student';
 };
 
-export default function ManagementCard({ title, details = [], onEdit, onDelete, onViewStudents, onViewActivities, variant = 'course' }: Props) {
+export default function ManagementCard({ title, details = [], onEdit, onDelete, onViewStudents, onViewActivities, onViewShareCode, variant = 'course' }: Props) {
   const { colors } = useTheme();
   const accentColor = variant === 'course'
     ? colors.primary
@@ -75,7 +76,7 @@ export default function ManagementCard({ title, details = [], onEdit, onDelete, 
         </View>
       )}
 
-      {(onViewStudents || onViewActivities) && (
+      {(onViewStudents || onViewActivities || onViewShareCode) && (
         <View style={styles.bottomRow}>
           {!!onViewStudents && (
             <TouchableOpacity onPress={onViewStudents}>
@@ -90,6 +91,14 @@ export default function ManagementCard({ title, details = [], onEdit, onDelete, 
               <View style={[styles.bottomItem, styles.bottomPill, { borderColor: colors.border, backgroundColor: colors.background }]}> 
                 <MaterialCommunityIcons name="calendar-month" size={16} color={accentColor} />
                 <Text style={[styles.bottomText, { color: accentColor }]}>Ver Actividades</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+          {!!onViewShareCode && (
+            <TouchableOpacity onPress={onViewShareCode}>
+              <View style={[styles.bottomItem, styles.bottomPill, { borderColor: colors.border, backgroundColor: colors.background }]}> 
+                <MaterialCommunityIcons name="key" size={16} color={accentColor} />
+                <Text style={[styles.bottomText, { color: accentColor }]}>Código</Text>
               </View>
             </TouchableOpacity>
           )}

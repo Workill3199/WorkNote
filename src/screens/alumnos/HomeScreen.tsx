@@ -171,7 +171,7 @@ export default function HomeScreen({ navigation }: Props) {
   const QuickActions = () => {
     const rootNav = navigation.getParent()?.getParent();
     const actions = [
-      { icon: 'clipboard-text', label: 'Tareas pendientes', color: '#60A5FA', onPress: () => navigation.navigate('Activities') },
+      { icon: 'clipboard-text', label: 'Tareas pendientes', color: '#60A5FA', onPress: () => navigation.navigate('Actividades') },
       { icon: 'book-open-variant', label: 'Mis cursos', color: '#A78BFA', onPress: () => navigation.navigate('Courses') },
       { icon: 'account', label: 'Mi perfil', color: '#22D3EE', onPress: () => navigation.navigate('UserProfile') },
       { icon: 'bell', label: 'Notificaciones', color: '#34D399', onPress: () => navigation.navigate('NotificationsSettings') },

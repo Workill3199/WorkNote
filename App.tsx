@@ -237,6 +237,8 @@ function AppNavigation() {
         <Stack.Screen name="Activities" component={ActivitiesListScreen} options={{ title: 'Actividades' }} />
         <Stack.Screen name="ActivityCreate" component={ActivityCreateScreen} options={{ title: 'Nueva Actividad' }} />
         <Stack.Screen name="Students" component={StudentsListScreen} options={{ title: 'Estudiantes' }} />
+        {/* Ruta específica para alumnos: listado de estudiantes sin acciones de profesor */}
+        <Stack.Screen name="StudentStudents" component={require('./src/screens/alumnos/StudentsListScreen').default} options={{ title: 'Estudiantes' }} />
         <Stack.Screen name="StudentCreate" component={StudentCreateScreen} options={{ title: 'Registrar Estudiante' }} />
         <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: 'Perfil de Usuario' }} />
         <Stack.Screen name="Attendance" component={AttendanceScreen} options={{ title: 'Asistencia' }} />

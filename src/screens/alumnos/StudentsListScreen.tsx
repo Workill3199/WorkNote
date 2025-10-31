@@ -4,7 +4,6 @@ import { useTheme } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { listStudents, Student, deleteStudent, listStudentsByCourse, listStudentsByWorkshop } from '../../services/students';
 import { listCourses, Course } from '../../services/courses';
-import NeonButton from '../../components/NeonButton';
 import StudentListItem from '../../components/StudentListItem';
 import { fonts } from '../../theme/typography';
 import { darkColors } from '../../theme/colors';
@@ -75,22 +74,7 @@ export default function StudentsListScreen({ navigation, route }: Props) {
       {/* Header estilo dashboard */}
       <View style={[styles.header, { borderBottomColor: darkColors.border }] }>
         <Text style={[styles.title, { color: colors.text }]}>Estudiantes</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          {!!filterCourseId && (
-            <NeonButton
-              title="Asistencia"
-              onPress={() => navigation.navigate('Attendance', { filterCourseId })}
-              colors={{ ...colors, primary: darkColors.success } as any}
-              shadowRadius={12}
-              elevation={6}
-              style={[styles.addBtn, { backgroundColor: darkColors.success, marginRight: 8 }]}
-              textStyle={styles.addText}
-            />
-          )}
-          <TouchableOpacity style={[styles.addBtn, { backgroundColor: darkColors.primary }]} onPress={() => navigation.navigate('StudentCreate')}> 
-            <Text style={styles.addText}>+ Registrar</Text>
-          </TouchableOpacity>
-        </View>
+        {/* En alumnos no se muestran acciones de asistencia ni registro */}
       </View>
 
       {/* Barra de búsqueda */}

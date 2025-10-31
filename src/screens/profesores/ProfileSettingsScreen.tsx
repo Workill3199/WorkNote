@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Switch, Alert, TextInput, ScrollView, Linking, Platform, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Alert, TextInput, ScrollView, Linking, Platform, Animated } from 'react-native';
 import { useTheme, useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -23,6 +23,8 @@ export default function ProfileSettingsScreen() {
 
   const [editingNick, setEditingNick] = useState(false);
   const [photo, setPhoto] = useState<string | null>(initialPhotoURL);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [editingPhone, setEditingPhone] = useState(false);
   const glow = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (!photo) {
@@ -108,6 +110,18 @@ export default function ProfileSettingsScreen() {
     } catch (e: any) {
       Alert.alert('Error', e?.message ?? 'No se pudo subir la foto');
     }
+  };
+
+  const handleSaveNickname = async () => {
+    if (!config.nickname.trim()) return;
+    setNickname(config.nickname.trim());
+    setEditingNick(false);
+    await save();
+  };
+
+  const handleSavePhone = () => {
+    // Aquí podrías guardar el teléfono en Firebase o en el contexto
+    setEditingPhone(false);
   };
 
   const onSave = async () => {
@@ -241,23 +255,37 @@ export default function ProfileSettingsScreen() {
               </View>
               <View>
                 <Text style={[styles.rowTitle, { color: colors.text }]}>Email</Text>
-                <Text style={{ color: colors.text }}>{user?.email || '—'}</Text>
+                <Text style={{ color: colors.text }}>{user?.email || 'No disponible'}</Text>
               </View>
             </View>
             <MaterialCommunityIcons name="chevron-right" size={20} color={colors.mutedText} />
           </TouchableOpacity>
           <View style={[styles.separator, { backgroundColor: colors.border }]} />
-          <TouchableOpacity style={styles.row}>
+          <TouchableOpacity style={styles.row} onPress={() => setEditingPhone(true)}>
             <View style={styles.rowLeft}>
               <View style={[styles.rowIcon, { backgroundColor: colors.secondary }]}>                
                 <MaterialCommunityIcons name="phone-outline" size={18} color={colors.text} />
               </View>
               <View>
                 <Text style={[styles.rowTitle, { color: colors.text }]}>Teléfono</Text>
-                <Text style={{ color: colors.text }}>—</Text>
+                {editingPhone ? (
+                  <TextInput
+                    style={{ color: colors.text, borderBottomWidth: 1, borderBottomColor: colors.primary, minWidth: 150 }}
+                    value={phoneNumber}
+                    onChangeText={setPhoneNumber}
+                    onBlur={handleSavePhone}
+                    onSubmitEditing={handleSavePhone}
+                    autoFocus
+                    placeholder="Agregar número"
+                    placeholderTextColor={colors.mutedText}
+                    keyboardType="phone-pad"
+                  />
+                ) : (
+                  <Text style={{ color: colors.text }}>{phoneNumber || 'Agregar número'}</Text>
+                )}
               </View>
             </View>
-            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.mutedText} />
+            {!editingPhone && <MaterialCommunityIcons name="chevron-right" size={20} color={colors.mutedText} />}
           </TouchableOpacity>
         </View>
 
@@ -270,32 +298,6 @@ export default function ProfileSettingsScreen() {
                 <MaterialCommunityIcons name="bell-outline" size={18} color={colors.text} />
               </View>
               <Text style={[styles.rowTitle, { color: colors.text }]}>Notificaciones</Text>
-            </View>
-            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.mutedText} />
-          </TouchableOpacity>
-          <View style={[styles.separator, { backgroundColor: colors.border }]} />
-          <View style={styles.row}>
-            <View style={styles.rowLeft}>
-              <View style={[styles.rowIcon, { backgroundColor: colors.secondary }]}>                
-                <MaterialCommunityIcons name="weather-sunny" size={18} color={colors.text} />
-              </View>
-              <View>
-                <Text style={[styles.rowTitle, { color: colors.text }]}>Modo Oscuro</Text>
-                <Text style={{ color: colors.text }}>{config.lightMode ? 'Claro' : 'Oscuro'}</Text>
-              </View>
-            </View>
-            <Switch value={config.lightMode} onValueChange={setLightMode} />
-          </View>
-          <View style={[styles.separator, { backgroundColor: colors.border }]} />
-          <TouchableOpacity style={styles.row}>
-            <View style={styles.rowLeft}>
-              <View style={[styles.rowIcon, { backgroundColor: colors.secondary }]}>                
-                <MaterialCommunityIcons name="translate" size={18} color={colors.text} />
-              </View>
-              <View>
-                <Text style={[styles.rowTitle, { color: colors.text }]}>Idioma</Text>
-                <Text style={{ color: colors.mutedText }}>Español</Text>
-              </View>
             </View>
             <MaterialCommunityIcons name="chevron-right" size={20} color={colors.mutedText} />
           </TouchableOpacity>

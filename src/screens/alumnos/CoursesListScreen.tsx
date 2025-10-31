@@ -174,7 +174,7 @@ export default function CoursesListScreen({ navigation }: Props) {
                   semester={item.semester}
                   studentsCount={studentCounts[item.id! ] || 0}
                   variant="tile"
-                  onPress={() => navigation.navigate('Activities', { filterCourseId: item.id })}
+                  onPress={() => navigation.navigate('Actividades', { filterCourseId: item.id })}
                   {...(item.ownerId === (auth?.currentUser?.uid || '') ? {
                     onEdit: () => navigation.navigate('CourseCreate', { editItem: item }),
                     onDelete: () => onDelete(item.id),
@@ -193,14 +193,13 @@ export default function CoursesListScreen({ navigation }: Props) {
                   ...(item.classroom ? [{ icon: 'map-marker', text: `Aula: ${item.classroom}` }] : []),
                   ...(item.schedule ? [{ icon: 'clock-outline', text: `Horario: ${item.schedule}` }] : []),
                   ...(item.semester ? [{ icon: 'calendar-blank', text: `Semestre: ${item.semester}` }] : []),
-                  ...(item.shareCode && item.ownerId === (auth?.currentUser?.uid || '') ? [{ icon: 'key', text: `Código: ${item.shareCode}` }] : []),
                   { icon: 'account-group', text: `Estudiantes: ${studentCounts[item.id! ] || 0}` },
                 ]}
                 variant="course"
                 onEdit={() => navigation.navigate('CourseCreate', { editItem: item })}
                 onDelete={() => onDelete(item.id)}
-                onViewStudents={() => navigation.navigate('Students', { filterCourseId: item.id })}
-                onViewActivities={() => navigation.navigate('Activities', { filterCourseId: item.id })}
+                onViewStudents={() => navigation.navigate('StudentStudents', { filterCourseId: item.id })}
+                onViewActivities={() => navigation.navigate('Actividades', { filterCourseId: item.id })}
               />
             ))}
           </>

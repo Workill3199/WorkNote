@@ -6,7 +6,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { listActivities, Activity, deleteActivity, listActivitiesByCourse, listActivitiesByWorkshop, updateActivity } from '../../services/activities';
 import ManagementCard from '../../components/ManagementCard';
 import NeonButton from '../../components/NeonButton';
-import { listCourses, Course, ensureCourseShareCode, getCourse } from '../../services/courses';
+import { listCourses, Course } from '../../services/courses';
 import { auth } from '../../config/firebase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { getDownloadURL, ref } from 'firebase/storage';
@@ -21,11 +21,13 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
   const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState<'Todas' | 'Pendientes' | 'Completadas' | 'Vencidas' | 'Alta' | 'Media' | 'Baja'>('Todas');
+  const [filter, setFilter] = useState<'Todas' | 'Pendientes' | 'Completadas' | 'Vencidas'>('Todas');
   const courseTitleById = useMemo(() => Object.fromEntries(courses.map(c => [c.id!, c.title])), [courses]);
-  const [codeOpen, setCodeOpen] = useState(false);
-  const [codeValue, setCodeValue] = useState<string>('');
-  const [codeBusy, setCodeBusy] = useState<boolean>(false);
+  // Filtro manual por clase cuando vienes desde la pestaña Actividades
+  const [courseFilterId, setCourseFilterId] = useState<string | undefined>((route as any)?.params?.filterCourseId);
+  // Controla el despliegue del filtrador adicional de clases
+  const [showClassFilter, setShowClassFilter] = useState(false);
+  // Los alumnos no generan códigos; solo el profesor puede hacerlo.
 
   // Tokens portados desde "actividades" basados en el tema oscuro
   const T = {
@@ -55,7 +57,20 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
       } else if (filterWorkshopId) {
         data = await listActivitiesByWorkshop(filterWorkshopId);
       } else {
-        data = await listActivities();
+        // Vista agregada para alumnos: actividades de todas las clases en las que está unido
+        const joinedCourses = await listCourses();
+        const results = await Promise.all((joinedCourses || []).map(c => listActivitiesByCourse(c.id!)));
+        const merged: Activity[] = [];
+        const seen = new Set<string>();
+        for (const arr of results) {
+          for (const it of arr) {
+            if (!it?.id) continue;
+            if (seen.has(it.id)) continue;
+            seen.add(it.id);
+            merged.push(it);
+          }
+        }
+        data = merged;
       }
       setItems(data);
       // Normalización persistente de URLs antiguas de adjuntos guardadas en Firestore
@@ -128,11 +143,25 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
     }
   };
 
+  const filterCourseId = (route as any)?.params?.filterCourseId as string | undefined;
+  // Sincroniza filtro local cuando cambian los params de navegación
+  useEffect(() => {
+    setCourseFilterId(filterCourseId);
+  }, [filterCourseId]);
+  const filterWorkshopId = (route as any)?.params?.filterWorkshopId as string | undefined;
+  const effectiveCourseId = courseFilterId || filterCourseId;
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return items.filter((item) => {
-      // Ocultar registros de asistencia: solo se muestran en la pantalla de Asistencia
-      if ((item.category || '').toLowerCase() === 'asistencia') return false;
+      // Filtro estricto por curso/taller si vienen en la ruta o filtro manual
+      if (effectiveCourseId) {
+        const inCourse = (item.courseId === effectiveCourseId) || ((item.courseIds || []).includes(effectiveCourseId));
+        if (!inCourse) return false;
+      }
+      if (filterWorkshopId) {
+        if ((item.workshopId || '') !== filterWorkshopId) return false;
+      }
+      // Mostrar todas las categorías, incluida "Asistencia"
       const matchesText = (
         (item.title ?? '').toLowerCase().includes(q) ||
         (item.description ?? '').toLowerCase().includes(q)
@@ -143,14 +172,11 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
         filter === 'Todas' ||
         (filter === 'Pendientes' && !item.completed) ||
         (filter === 'Completadas' && !!item.completed) ||
-        (filter === 'Vencidas' && isOverdue) ||
-        (filter === 'Alta' && item.priority === 'alta') ||
-        (filter === 'Media' && item.priority === 'media') ||
-        (filter === 'Baja' && item.priority === 'baja')
+        (filter === 'Vencidas' && isOverdue)
       );
       return matchesText && matchesFilter;
     });
-  }, [items, query, filter]);
+  }, [items, query, filter, effectiveCourseId, filterWorkshopId]);
 
   const toggleCompleted = async (id?: string, current?: boolean) => {
     if (!id) return;
@@ -168,7 +194,7 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
     ]);
   };
 
-  const filterCourseId = (route as any)?.params?.filterCourseId as string | undefined;
+  // filterCourseId definido arriba para evitar TDZ al usarlo en useMemo
   const selectedCourse = useMemo(() => courses.find(c => c.id === filterCourseId), [courses, filterCourseId]);
   const isOwner = (selectedCourse?.ownerId ?? '') === (auth?.currentUser?.uid || '');
 
@@ -199,40 +225,10 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
           <Text style={[styles.title, { color: T.text }]}>Actividades</Text>
         </View>
         <View style={styles.headerActions}>
-          {!!filterCourseId && isOwner && (
-            <NeonButton
-              title="Código"
-              onPress={async () => {
-                if (!filterCourseId) return;
-                setCodeBusy(true);
-                try {
-                  const course = await getCourse(filterCourseId);
-                  let code = course?.shareCode || '';
-                  if (!code) {
-                    code = await ensureCourseShareCode(filterCourseId);
-                    // actualizar cache local de cursos
-                    setCourses(prev => prev.map(c => c.id === filterCourseId ? { ...c, shareCode: code } as any : c));
-                  }
-                  setCodeValue(code);
-                  setCodeOpen(true);
-                } catch (e) {
-                  setCodeValue('');
-                  setCodeOpen(true);
-                } finally {
-                  setCodeBusy(false);
-                }
-              }}
-              colors={{ ...colors, primary: T.accent } as any}
-              shadowRadius={12}
-              elevation={6}
-              style={[styles.addBtn, { backgroundColor: T.accent, marginRight: 8 }]}
-              textStyle={styles.addText}
-            />
-          )}
           {!!filterCourseId && (
             <NeonButton
               title="Alumnos"
-              onPress={() => navigation.navigate('Students', { filterCourseId })}
+              onPress={() => navigation.navigate('StudentStudents', { filterCourseId })}
               colors={{ ...colors, primary: T.accent } as any}
               shadowRadius={12}
               elevation={6}
@@ -240,47 +236,12 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
               textStyle={styles.addText}
             />
           )}
-          <NeonButton
-            title="+ Agregar"
-            onPress={() => navigation.navigate('ActivityCreate')}
-            colors={{ ...colors, primary: T.primary } as any}
-            shadowRadius={12}
-            elevation={6}
-            style={[styles.addBtn, { backgroundColor: T.primary }]}
-            textStyle={styles.addText}
-          />
         </View>
       </View>
 
-      {/* Popup de código de clase */}
-      {codeOpen && (
-        <View style={styles.codePopup}>
-          <View style={styles.codeRow}>
-            <MaterialCommunityIcons name="key" size={16} color={T.accent} />
-            <Text style={[styles.codeText, { color: T.text }]}>{codeBusy ? '...' : (codeValue || selectedCourse?.shareCode || '—')}</Text>
-            {Platform.OS === 'web' && (
-              <TouchableOpacity
-                style={[styles.copyBtn, { backgroundColor: T.primary }]}
-                onPress={async () => {
-                  try {
-                    const toCopy = codeValue || selectedCourse?.shareCode || '';
-                    if (!toCopy) return;
-                    await (navigator as any)?.clipboard?.writeText(toCopy);
-                    Alert.alert('Copiado', 'Código copiado al portapapeles');
-                  } catch {
-                    Alert.alert('Aviso', 'No se pudo copiar automáticamente');
-                  }
-                }}
-              >
-                <Text style={styles.addText}>Copiar</Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity onPress={() => setCodeOpen(false)}>
-              <MaterialCommunityIcons name="close" size={16} color={T.text} />
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
+      {/* (Popup de clases movido debajo del buscador) */}
+
+      {/* Alumnos: no se muestra popup de código */}
 
       {/* Barra de búsqueda (glass) */}
       <View style={styles.searchRow}>
@@ -300,20 +261,60 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
             onChangeText={setQuery}
             style={[styles.searchInput, { color: T.text }]}
           />
-        </View>
       </View>
+    </View>
 
-      {/* Filtros horizontales */}
+      {/* (Popup de clases reubicado debajo del filtrador) */}
+
+      {/* Filtros de estado + botón "Clases" junto a "Todas" */}
       <View style={styles.filtersRow}>
-        {(['Todas', 'Pendientes', 'Completadas', 'Vencidas', 'Alta', 'Media', 'Baja'] as const).map((f) => {
+        <Text style={[styles.filterLabel, { color: T.text }]}>Estado:</Text>
+        {/* Botón de estado: Todas */}
+        {(['Todas'] as const).map((f) => {
           const active = filter === f;
           return (
-            <TouchableOpacity key={f} onPress={() => setFilter(f)} style={[styles.chip, active && styles.chipActive]} activeOpacity={0.8}>
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>{f}</Text>
+            <TouchableOpacity key={f} onPress={() => setFilter(f)} style={[styles.chip, active && styles.chipActive, { borderColor: T.accent }]} activeOpacity={0.8}>
+              <Text style={[styles.chipText, active && styles.chipTextActive, { color: active ? T.bg : T.text }]}>{f}</Text>
+            </TouchableOpacity>
+          );
+        })}
+        {/* Botón para desplegar el filtrador de clases */}
+        {!filterCourseId && (
+          <TouchableOpacity onPress={() => setShowClassFilter(v => !v)} style={[styles.chip, showClassFilter && styles.chipActive, { borderColor: T.accent }]} activeOpacity={0.8}>
+            <Text style={[styles.chipText, showClassFilter && styles.chipTextActive, { color: showClassFilter ? T.bg : T.text }]}>Clases</Text>
+          </TouchableOpacity>
+        )}
+        {/* Resto de estados */}
+        {(['Pendientes', 'Completadas', 'Vencidas'] as const).map((f) => {
+          const active = filter === f;
+          return (
+            <TouchableOpacity key={f} onPress={() => setFilter(f)} style={[styles.chip, active && styles.chipActive, { borderColor: T.accent }]} activeOpacity={0.8}>
+              <Text style={[styles.chipText, active && styles.chipTextActive, { color: active ? T.bg : T.text }]}>{f}</Text>
             </TouchableOpacity>
           );
         })}
       </View>
+
+      {/* Popup de clases: aparece debajo del filtrador */}
+      {!filterCourseId && showClassFilter && (
+        <View style={[styles.menu, { borderColor: T.border, backgroundColor: Platform.OS === 'web' ? 'rgba(42,42,58,0.7)' : T.card }]}> 
+          {([
+            { id: undefined, title: 'Todas las clases' },
+            ...courses.map(c => ({ id: c.id!, title: c.title }))
+          ]).map((item, index, arr) => (
+            <TouchableOpacity
+              key={(item.id ?? 'all') + ''}
+              onPress={() => { setCourseFilterId(item.id); setShowClassFilter(false); }}
+              style={[
+                styles.menuItem,
+                { borderBottomWidth: index === arr.length - 1 ? 0 : 1, borderBottomColor: T.border }
+              ]}
+            > 
+              <Text style={[styles.menuText, { color: T.text }]}>{item.title}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
       {loading && <ActivityIndicator color={colors.primary} style={{ marginTop: 16 }} />}
       {!!error && <Text style={[styles.error, { color: T.prioHigh }]}>{error}</Text>}
@@ -430,35 +431,36 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 as any },
+  container: { flex: 1, paddingHorizontal: 16, paddingTop: 16 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center' },
   headerActions: { flexDirection: 'row', alignItems: 'center' },
-  title: { fontSize: 18, fontWeight: '700' },
-  addBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
-  addText: { color: '#1A1A2E', fontWeight: '700' },
-  error: { marginTop: 8, textAlign: 'center' },
-  empty: { marginTop: 12, textAlign: 'center' },
-  codePopup: { borderWidth: 1.5, borderColor: darkColors.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: Platform.OS === 'web' ? 'rgba(42,42,58,0.7)' : darkColors.card, ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' } as any) : {}), marginBottom: 8 },
-  codeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 as any },
-  codeText: { flex: 1, fontSize: 16, fontWeight: '700' },
-  copyBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, marginLeft: 8 },
-  searchRow: { marginBottom: 8 },
-  searchBox: { flexDirection: 'row', alignItems: 'center', gap: 8 as any, borderRadius: 12, borderWidth: 1.5, borderColor: darkColors.border, paddingHorizontal: 12, paddingVertical: 10, shadowColor: darkColors.accent, shadowOpacity: Platform.OS === 'web' ? 0 : 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
-  searchInput: { flex: 1, fontSize: 14 },
-  filtersRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 as any, marginBottom: 12 },
-  chip: { borderWidth: 1.5, borderColor: darkColors.border, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, marginRight: 6, marginBottom: 6, backgroundColor: Platform.OS === 'web' ? 'rgba(42,42,58,0.65)' : darkColors.card, ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' } as any) : {}), shadowColor: darkColors.accent, shadowOpacity: Platform.OS === 'web' ? 0 : 0.2, shadowRadius: 6, shadowOffset: { width: 0, height: 3 } },
-  chipActive: { borderColor: darkColors.primary, backgroundColor: 'rgba(42,42,58,0.8)', shadowColor: darkColors.primary, shadowOpacity: Platform.OS === 'web' ? 0 : 0.35, shadowRadius: 8 },
-  chipText: { color: darkColors.mutedText, fontSize: 12, fontWeight: '600' },
-  chipTextActive: { color: darkColors.primary },
-  card: { position: 'relative', borderWidth: 2, borderRadius: 14, padding: 14, marginTop: 12, shadowColor: '#0B1221', shadowOpacity: 0.28, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 7 },
-  leftBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 6, borderTopLeftRadius: 14, borderBottomLeftRadius: 14 },
-  cardContent: { marginLeft: 8 },
-  cardHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  cardTitle: { fontSize: 16, fontWeight: '700', flex: 1, marginLeft: 8 },
-  cardDesc: { fontSize: 12, marginTop: 6 },
-  badgesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 as any, marginTop: 10 },
-  badge: { flexDirection: 'row', alignItems: 'center', gap: 6 as any, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7, borderWidth: 1.25 },
+  title: { fontSize: 20, fontWeight: 'bold', marginLeft: 8 },
+  searchRow: { marginBottom: 12 },
+  searchBox: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 },
+  searchInput: { flex: 1, marginLeft: 8, fontSize: 14 },
+  filtersRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' },
+  filterLabel: { fontSize: 14, fontWeight: '600', marginRight: 8, marginBottom: 4 },
+  chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, marginRight: 8, marginBottom: 4, borderWidth: 1 },
+  chipActive: { backgroundColor: '#60a5fa' },
+  chipText: { fontSize: 12, fontWeight: '500' },
+  chipTextActive: { color: '#fff' },
+  // Dropdown de clases
+  menu: { borderWidth: 1, borderRadius: 10, marginBottom: 12, overflow: 'hidden', maxHeight: 240 },
+  menuItem: { paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1 },
+  menuText: { fontSize: 14 },
+  addBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+  addText: { fontSize: 12, fontWeight: 'bold', color: '#fff' },
+  error: { textAlign: 'center', marginTop: 16 },
+  empty: { textAlign: 'center', marginTop: 32, fontSize: 16 },
+  card: { marginBottom: 12, borderRadius: 12, borderWidth: 1, overflow: 'hidden', flexDirection: 'row' },
+  leftBar: { width: 4 },
+  cardContent: { flex: 1, padding: 12 },
+  cardHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  cardTitle: { flex: 1, fontSize: 16, fontWeight: '600', marginLeft: 8 },
+  cardDesc: { fontSize: 14, marginBottom: 8 },
+  badgesRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' },
+  badge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, marginRight: 8, marginBottom: 4, borderWidth: 1 },
   badgeText: { fontSize: 12 },
   checkbox: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
 });
