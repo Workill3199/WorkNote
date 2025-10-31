@@ -83,9 +83,6 @@ export default function CoursesListScreen({ navigation }: Props) {
           <TouchableOpacity style={[styles.addBtn, { backgroundColor: darkColors.accent }]} onPress={() => setJoinOpen(v => !v)}> 
             <Text style={styles.addText}>Unirme</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.addBtn, { backgroundColor: darkColors.primary }]} onPress={() => navigation.navigate('CourseCreate')}> 
-            <Text style={styles.addText}>+ Agregar</Text>
-          </TouchableOpacity>
         </View>
       </View>
 
