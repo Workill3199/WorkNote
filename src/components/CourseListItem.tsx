@@ -12,9 +12,11 @@ type Props = {
   studentsCount?: number;
   variant?: 'row' | 'tile';
   onPress?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
 };
 
-export default function CourseListItem({ title, classroom, schedule, semester, studentsCount = 0, variant = 'row', onPress }: Props) {
+export default function CourseListItem({ title, classroom, schedule, semester, studentsCount = 0, variant = 'row', onPress, onEdit, onDelete }: Props) {
   const initials = title
     .split(' ')
     .map((n) => n[0])
@@ -28,6 +30,20 @@ export default function CourseListItem({ title, classroom, schedule, semester, s
     return (
       <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={styles.touch}>
         <View style={styles.tileCard}>
+          {(onEdit || onDelete) && (
+            <View style={styles.tileActions}>
+              {onEdit && (
+                <TouchableOpacity onPress={onEdit} style={styles.actionIconBtn}>
+                  <MaterialCommunityIcons name="pencil" size={14} color={darkColors.accent} />
+                </TouchableOpacity>
+              )}
+              {onDelete && (
+                <TouchableOpacity onPress={onDelete} style={styles.actionIconBtn}>
+                  <MaterialCommunityIcons name="trash-can-outline" size={14} color="#d32f2f" />
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
           <View style={styles.tileAvatarWrap}>
             <View style={styles.tileAvatar}>
               <MaterialCommunityIcons name="book-open-variant" size={28} color={darkColors.primary} />
@@ -82,6 +98,20 @@ export default function CourseListItem({ title, classroom, schedule, semester, s
           <View style={styles.statusBadge}>
             <Text style={styles.statusText}>{studentsCount} alumnos</Text>
           </View>
+          {(onEdit || onDelete) && (
+            <View style={styles.rowActions}>
+              {onEdit && (
+                <TouchableOpacity onPress={onEdit}>
+                  <MaterialCommunityIcons name="pencil" size={16} color={darkColors.accent} />
+                </TouchableOpacity>
+              )}
+              {onDelete && (
+                <TouchableOpacity onPress={onDelete}>
+                  <MaterialCommunityIcons name="trash-can-outline" size={16} color="#d32f2f" />
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
           <MaterialCommunityIcons name="chevron-right" size={20} color={darkColors.mutedText} />
         </View>
       </View>
@@ -121,6 +151,7 @@ const styles = StyleSheet.create({
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 as any, marginTop: 4 },
   metaText: { color: darkColors.mutedText, fontFamily: fonts.regular, fontSize: 12 },
   right: { alignItems: 'flex-end', gap: 8 },
+  rowActions: { flexDirection: 'row', alignItems: 'center', gap: 8 as any },
   statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -144,7 +175,10 @@ const styles = StyleSheet.create({
     ...(Platform.OS === 'web'
       ? ({ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' } as any)
       : {}),
+    position: 'relative',
   },
+  tileActions: { position: 'absolute', right: 8, top: 8, flexDirection: 'row', alignItems: 'center', gap: 8 as any },
+  actionIconBtn: { paddingHorizontal: 8, paddingVertical: 6, borderRadius: 8, backgroundColor: 'rgba(110,120,255,0.12)' },
   tileAvatarWrap: { alignItems: 'center', justifyContent: 'center' },
   tileAvatar: {
     width: 64,

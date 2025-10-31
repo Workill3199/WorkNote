@@ -5,26 +5,28 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import LoginScreen from './src/screens/LoginScreen';
-import RegisterScreen from './src/screens/RegisterScreen';
-import HomeScreen from './src/screens/HomeScreen';
-import CoursesListScreen from './src/screens/CoursesListScreen';
-import CourseCreateScreen from './src/screens/CourseCreateScreen';
-import WorkshopsListScreen from './src/screens/WorkshopsListScreen';
-import WorkshopCreateScreen from './src/screens/WorkshopCreateScreen';
-import ActivitiesListScreen from './src/screens/ActivitiesListScreen';
-import ActivityCreateScreen from './src/screens/ActivityCreateScreen';
-import StudentsListScreen from './src/screens/StudentsListScreen';
-import StudentCreateScreen from './src/screens/StudentCreateScreen';
+import RegisterScreen from './src/screens/profesores/RegisterScreen';
+import HomeScreen from './src/screens/profesores/HomeScreen';
+import CoursesListScreen from './src/screens/profesores/CoursesListScreen';
+import CourseCreateScreen from './src/screens/profesores/CourseCreateScreen';
+import WorkshopsListScreen from './src/screens/profesores/WorkshopsListScreen';
+import WorkshopCreateScreen from './src/screens/profesores/WorkshopCreateScreen';
+import ActivitiesListScreen from './src/screens/profesores/ActivitiesListScreen';
+import ActivityCreateScreen from './src/screens/profesores/ActivityCreateScreen';
+import StudentsListScreen from './src/screens/profesores/StudentsListScreen';
+import StudentCreateScreen from './src/screens/profesores/StudentCreateScreen';
+import AttendanceScreen from './src/screens/profesores/AttendanceScreen';
 import { DarkThemeCustom } from './src/theme/navigation';
 import { darkColors } from './src/theme/colors';
-import MoreScreen from './src/screens/MoreScreen';
-import ProfileSettingsScreen from './src/screens/ProfileSettingsScreen';
+import MoreScreen from './src/screens/profesores/MoreScreen';
+import ProfileSettingsScreen from './src/screens/profesores/ProfileSettingsScreen';
 import React from 'react';
 import { ConfigProvider, useConfig } from './src/context/ConfigContext';
-import NotificationsSettingsScreen from './src/screens/NotificationsSettingsScreen';
-import PrivacySettingsScreen from './src/screens/PrivacySettingsScreen';
-import PrivacyPolicyScreen from './src/screens/PrivacyPolicyScreen';
-import TermsScreen from './src/screens/TermsScreen';
+import NotificationsSettingsScreen from './src/screens/profesores/NotificationsSettingsScreen';
+import PrivacySettingsScreen from './src/screens/profesores/PrivacySettingsScreen';
+import PrivacyPolicyScreen from './src/screens/profesores/PrivacyPolicyScreen';
+import TermsScreen from './src/screens/profesores/TermsScreen';
+import UserProfileScreen from './src/screens/UserProfileScreen';
 import './src/i18n';
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import { Manrope_700Bold } from '@expo-google-fonts/manrope';
@@ -137,8 +139,8 @@ function AppNavigation() {
           headerTitleStyle: { fontFamily: fonts.bold },
         }}
       >
-        <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
         {/* Rutas internas usadas por acciones del Home */}
         <Stack.Screen name="Courses" component={CoursesListScreen} options={{ title: 'Cursos' }} />
@@ -149,7 +151,9 @@ function AppNavigation() {
         <Stack.Screen name="ActivityCreate" component={ActivityCreateScreen} options={{ title: 'Nueva Actividad' }} />
         <Stack.Screen name="Students" component={StudentsListScreen} options={{ title: 'Estudiantes' }} />
         <Stack.Screen name="StudentCreate" component={StudentCreateScreen} options={{ title: 'Registrar Estudiante' }} />
-        <Stack.Screen name="ProfileSettings" component={ProfileSettingsScreen} options={{ title: 'Configuración de Perfil' }} />
+        <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: 'Perfil de Usuario' }} />
+        <Stack.Screen name="Attendance" component={AttendanceScreen} options={{ title: 'Asistencia' }} />
+        <Stack.Screen name="ProfileSettings" component={ProfileSettingsScreen} options={{ headerShown: false }} />
         <Stack.Screen name="NotificationsSettings" component={NotificationsSettingsScreen} options={{ title: 'Notificaciones' }} />
         <Stack.Screen name="PrivacySettings" component={PrivacySettingsScreen} options={{ title: 'Privacidad' }} />
         <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} options={{ title: 'Política de Privacidad' }} />

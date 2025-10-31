@@ -1,5 +1,6 @@
-import { addDoc, collection, getDocs, orderBy, query, serverTimestamp, updateDoc, doc, deleteDoc, where } from 'firebase/firestore';
+import { addDoc, collection, getDocs, query, serverTimestamp, updateDoc, doc, deleteDoc, where } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
+import { isUserAuthorizedForCourse } from './courses';
 
 export type Activity = {
   id?: string;
@@ -14,6 +15,8 @@ export type Activity = {
   completed?: boolean;
   ownerId?: string;
   createdAt?: any;
+  // Adjuntos opcionales (PDF, DOCX, etc.)
+  attachments?: { name: string; url: string; contentType?: string; size?: number }[];
 };
 
 const col = () => collection(db!, 'activities');
@@ -36,9 +39,11 @@ export async function createActivity(input: { title: string; description?: strin
 }
 
 export async function listActivities(): Promise<Activity[]> {
-  const q = query(col(), orderBy('createdAt', 'desc'));
+  const uid = auth?.currentUser?.uid || '';
+  const q = query(col(), where('ownerId', '==', uid));
   const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+  const rows = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+  return rows.sort((a: any, b: any) => (a.createdAt?.toMillis?.() ?? 0) < (b.createdAt?.toMillis?.() ?? 0) ? 1 : -1);
 }
 
 export async function listActivitiesByCourse(courseId: string): Promise<Activity[]> {
@@ -56,19 +61,30 @@ export async function listActivitiesByCourse(courseId: string): Promise<Activity
       items.push({ id: d.id, ...(d.data() as any) });
     }
   }
-  return items.sort((a, b) => (a.createdAt?.toMillis?.() ?? 0) < (b.createdAt?.toMillis?.() ?? 0) ? 1 : -1);
+  // Mostrar todas las actividades del curso si el usuario está autorizado (dueño o colaborador)
+  const authorized = await isUserAuthorizedForCourse(courseId);
+  const uid = auth?.currentUser?.uid || '';
+  const visible = authorized ? items : items.filter(r => (r.ownerId ?? '') === uid);
+  return visible.sort((a, b) => (a.createdAt?.toMillis?.() ?? 0) < (b.createdAt?.toMillis?.() ?? 0) ? 1 : -1);
 }
 
 export async function listActivitiesByWorkshop(workshopId: string): Promise<Activity[]> {
   // Evitamos composite index: sin orderBy en la consulta y ordenamos en cliente.
   const q = query(col(), where('workshopId', '==', workshopId));
   const snap = await getDocs(q);
-  const items = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+  // Filtrar por ownerId en cliente para evitar índices compuestos
+  const uid = auth?.currentUser?.uid || '';
+  const items = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) })).filter(r => (r.ownerId ?? '') === uid);
   return items.sort((a, b) => (a.createdAt?.toMillis?.() ?? 0) < (b.createdAt?.toMillis?.() ?? 0) ? 1 : -1);
 }
 
 export async function updateActivity(id: string, input: Partial<Activity>) {
-  await updateDoc(doc(db!, 'activities', id), input as any);
+  // Firestore no admite valores undefined en updateDoc. Limpiamos el payload.
+  const cleaned: Record<string, any> = {};
+  Object.entries(input || {}).forEach(([key, value]) => {
+    if (value !== undefined) cleaned[key] = value;
+  });
+  await updateDoc(doc(db!, 'activities', id), cleaned as any);
 }
 
 export async function deleteActivity(id: string) {
