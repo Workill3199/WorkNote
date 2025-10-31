@@ -6,6 +6,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/profesores/RegisterScreen';
+import RegisterRoleScreen from './src/screens/RegisterRoleScreen';
 import HomeScreen from './src/screens/profesores/HomeScreen';
 import CoursesListScreen from './src/screens/profesores/CoursesListScreen';
 import CourseCreateScreen from './src/screens/profesores/CourseCreateScreen';
@@ -126,6 +127,90 @@ function MainTabs() {
   );
 }
 
+function StudentTabs() {
+  const isWeb = Platform.OS === 'web';
+  const [navOpacity, setNavOpacity] = React.useState(0.98);
+  const [navBlur, setNavBlur] = React.useState(24);
+
+  React.useEffect(() => {
+    if (!isWeb) return;
+    const onScroll = () => {
+      const y = (window.scrollY || 0);
+      const maxOpacity = 0.98;
+      const minOpacity = 0.55;
+      const opacity = Math.max(minOpacity, Math.min(maxOpacity, maxOpacity - (y / 400) * 0.35));
+      const blur = Math.min(28, 18 + y / 50);
+      setNavOpacity(opacity);
+      setNavBlur(blur);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true } as any);
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [isWeb]);
+
+  return (
+    <View style={{ flex: 1 }}>
+      <Tab.Navigator
+        screenOptions={({ route }) => ({
+          headerShown: false,
+          tabBarHideOnKeyboard: true,
+          tabBarStyle: (
+            Platform.OS === 'web'
+              ? ({
+                  position: 'fixed',
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  width: '100%',
+                  zIndex: 100,
+                  backgroundColor: `rgba(10, 14, 26, ${navOpacity})`,
+                  backdropFilter: `blur(${navBlur}px)`,
+                  WebkitBackdropFilter: `blur(${navBlur}px)`,
+                  borderTopColor: 'rgba(255,255,255,0.1)',
+                  borderTopWidth: 1,
+                  boxShadow: '0 -4px 20px rgba(0,0,0,0.3)',
+                  paddingBottom: 10,
+                  paddingTop: 10,
+                } as any)
+              : {
+                  backgroundColor: 'rgba(10, 14, 26, 0.98)',
+                  borderTopColor: 'rgba(255,255,255,0.1)',
+                  borderTopWidth: 1,
+                  shadowColor: '#000',
+                  shadowOpacity: 0.3,
+                  shadowRadius: 20,
+                  shadowOffset: { width: 0, height: -4 },
+                  elevation: 12,
+                  display:  'flex',
+                }
+          ),
+          tabBarItemStyle: { paddingVertical: 6 },
+          tabBarIconStyle: { marginBottom: 0 },
+          tabBarActiveTintColor: darkColors.primary,
+          tabBarInactiveTintColor: darkColors.mutedText,
+          tabBarLabelStyle: { fontFamily: fonts.medium, fontSize: 12 },
+          tabBarIcon: ({ color, size }) => {
+            const iconSize = 20;
+            const name =
+              route.name === 'Inicio'
+                ? 'home'
+                : route.name === 'Cursos'
+                ? 'book-open-variant'
+                : route.name === 'Actividades'
+                ? 'clipboard-list'
+                : 'book-open-variant';
+            return <MaterialCommunityIcons name={name as any} size={iconSize} color={color} />;
+          },
+        })}
+      >
+        <Tab.Screen name="Inicio" component={require('./src/screens/alumnos/HomeScreen').default} />
+        <Tab.Screen name="Cursos" component={require('./src/screens/alumnos/CoursesListScreen').default} />
+        <Tab.Screen name="Actividades" component={require('./src/screens/alumnos/ActivitiesListScreen').default} />
+      </Tab.Navigator>
+    </View>
+  );
+}
+
 function AppNavigation() {
   const theme = DarkThemeCustom;
   const headerColors = { card: darkColors.card, text: darkColors.text };
@@ -139,9 +224,16 @@ function AppNavigation() {
           headerTitleStyle: { fontFamily: fonts.bold },
         }}
       >
+<<<<<<< HEAD
         <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }} />
+=======
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="RegisterRole" component={RegisterRoleScreen} options={{ title: 'Elegir rol' }} />
+        <Stack.Screen name="Register" component={RegisterScreen} />
+>>>>>>> origin/main
         <Stack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
+        <Stack.Screen name="StudentMain" component={StudentTabs} options={{ headerShown: false }} />
         {/* Rutas internas usadas por acciones del Home */}
         <Stack.Screen name="Courses" component={CoursesListScreen} options={{ title: 'Cursos' }} />
         <Stack.Screen name="CourseCreate" component={CourseCreateScreen} options={{ title: 'Nuevo Curso' }} />

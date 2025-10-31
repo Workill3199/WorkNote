@@ -1,22 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Platform, Alert } from 'react-native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { storage } from '../../config/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useTheme } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { createActivity, updateActivity, deleteActivity, Activity } from '../../services/activities';
 import { listCourses, Course } from '../../services/courses';
 import { darkColors } from '../../theme/colors';
 import { fonts } from '../../theme/typography';
-import { SafeAreaView } from 'react-native-safe-area-context';
 // Adjuntos removidos: no usamos Storage aquí
 
 type Props = NativeStackScreenProps<any>;
 
 export default function ActivityCreateScreen({ navigation, route }: Props) {
   const { colors } = useTheme();
-  const palette = darkColors
   const editItem = (route as any)?.params?.editItem as Activity | undefined;
   const [title, setTitle] = useState(editItem?.title || '');
   const [description, setDescription] = useState(editItem?.description || '');
@@ -30,33 +25,12 @@ export default function ActivityCreateScreen({ navigation, route }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
-  const [pendingFiles, setPendingFiles] = useState<any[]>([]); // Web: File[]
   // Adjuntos removidos
 
   useEffect(() => {
     // Cargar lista de clases (cursos) para el selector
     listCourses().then(setCourses).catch(() => setCourses([]));
   }, []);
-
-  const uploadAttachments = async (activityId: string) => {
-    if (!storage || !pendingFiles.length) return [] as { name: string; url: string; contentType?: string; size?: number }[];
-    const uploaded: { name: string; url: string; contentType?: string; size?: number }[] = [];
-    for (const f of pendingFiles) {
-      try {
-        const name: string = String((f?.name ?? `archivo-${Date.now()}`)).replace(/[^A-Za-z0-9._-]/g, '_');
-        const path = `activities/${activityId}/${Date.now()}-${name}`;
-        const r = ref(storage, path);
-        const bytes = f instanceof Blob ? f : (f?.blob ?? undefined);
-        const toUpload: Blob = bytes || new Blob([await (f?.arrayBuffer?.() ?? Promise.resolve(new ArrayBuffer(0)))]);
-        await uploadBytes(r, toUpload, { contentType: f?.type });
-        const url = await getDownloadURL(r);
-        uploaded.push({ name, url, contentType: f?.type, size: f?.size });
-      } catch (e) {
-        // Ignorar fallo individual, continuar con los demás
-      }
-    }
-    return uploaded;
-  };
 
   const onSave = async () => {
     setError(null);
@@ -68,22 +42,8 @@ export default function ActivityCreateScreen({ navigation, route }: Props) {
       const singleCourseId = (courseId || normalizedCourseIds[0] || '').trim();
       if (editItem?.id) {
         await updateActivity(editItem.id, { title: title.trim(), description: description.trim(), dueDate: due, category: category.trim(), courseId: singleCourseId || undefined, courseIds: normalizedCourseIds, workshopId: workshopId.trim() || undefined, priority });
-        // Subir adjuntos nuevos si se seleccionaron
-        if (pendingFiles.length) {
-          const newAtts = await uploadAttachments(editItem.id);
-          const prev = Array.isArray(editItem.attachments) ? editItem.attachments : [];
-          const merged = [...prev, ...newAtts];
-          await updateActivity(editItem.id, { attachments: merged as any });
-        }
       } else {
-        const newId = await createActivity({ title: title.trim(), description: description.trim(), dueDate: due, category: category.trim(), courseId: singleCourseId || undefined, courseIds: normalizedCourseIds, workshopId: workshopId.trim() || undefined, priority });
-        // Subir adjuntos si hay seleccionados
-        if (pendingFiles.length) {
-          const uploaded = await uploadAttachments(newId);
-          if (uploaded.length) {
-            await updateActivity(newId, { attachments: uploaded as any });
-          }
-        }
+        await createActivity({ title: title.trim(), description: description.trim(), dueDate: due, category: category.trim(), courseId: singleCourseId || undefined, courseIds: normalizedCourseIds, workshopId: workshopId.trim() || undefined, priority });
       }
       navigation.goBack();
     } catch (e: any) {
@@ -125,8 +85,6 @@ export default function ActivityCreateScreen({ navigation, route }: Props) {
   };
 
   return (
-  <SafeAreaView>
-    <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={true}>
     <View style={[styles.container, { backgroundColor: colors.background }] }>
       <Text style={[styles.title, { color: colors.text }]}>{editItem?.id ? 'Editar Actividad' : 'Nueva Actividad'}</Text>
       {!!error && <Text style={styles.error}>{error}</Text>}
@@ -159,36 +117,7 @@ export default function ActivityCreateScreen({ navigation, route }: Props) {
           onChangeText={setCategory}
         />
 
-        {/* Botón para agregar archivos (funcional en web) */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-          <TouchableOpacity
-            onPress={() => {
-              if (Platform.OS === 'web') {
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.multiple = true;
-                input.onchange = (e: any) => {
-                  const files = Array.from(e?.target?.files || []);
-                  setPendingFiles((prev) => [...prev, ...files]);
-                };
-                input.click();
-              } else {
-                Alert.alert('Adjuntar archivos', 'Adjuntar archivos está disponible en la versión web. Próximamente habilitaremos adjuntos en móvil.');
-              }
-            }}
-            style={[styles.chip, { flexDirection: 'row', alignItems: 'center' }]}
-            activeOpacity={0.85}
-          >
-            <MaterialCommunityIcons name="file-plus" size={16} color={darkColors.accent} />
-            <Text style={[styles.chipText, { marginLeft: 6 }]}>Agregar archivos</Text>
-          </TouchableOpacity>
-          {!!pendingFiles.length && (
-            <View style={[styles.chip, { marginLeft: 8, flexDirection: 'row', alignItems: 'center' }] }>
-              <MaterialCommunityIcons name="paperclip" size={16} color={darkColors.primary} />
-              <Text style={[styles.chipText, { marginLeft: 6 }]}>Seleccionados: {pendingFiles.length}</Text>
-            </View>
-          )}
-        </View>
+        {/* Adjuntos removidos a solicitud: no se muestra botón ni selector */}
 
         <Text style={[styles.label, { color: colors.text }]}>Fecha de vencimiento</Text>
         {Platform.OS === 'web' ? (
@@ -298,10 +227,8 @@ export default function ActivityCreateScreen({ navigation, route }: Props) {
             {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Eliminar</Text>}
           </TouchableOpacity>
         )}
-    </View>
       </View>
-      </ScrollView>
-      </SafeAreaView>
+    </View>
   );
 }
 
@@ -330,9 +257,4 @@ const styles = StyleSheet.create({
   chipText: { color: darkColors.mutedText, fontSize: 12 },
   chipTextActive: { color: darkColors.primary },
   hint: { fontSize: 11, color: darkColors.mutedText, marginBottom: 12 },
-  scrollContent: {
-  padding: 20,
-  gap: 20,
-  paddingBottom: 100,
-  },
 });

@@ -7,10 +7,8 @@ import { auth } from '../../config/firebase';
 import { updateProfile } from 'firebase/auth';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { fonts } from '../../theme/typography';
-import { Checkbox } from 'expo-checkbox';
 import { darkColors, lightColors } from '../../theme/colors';
 import NeonButton from '../../components/NeonButton';
-import { createUser } from '../../services/users';
 import { setUserRole, getLastSelectedRole } from '../../utils/roles';
 
 type Props = NativeStackScreenProps<any>;
@@ -41,7 +39,6 @@ export default function RegisterScreen({ navigation, route }: Props) {
   const [secureConfirm, setSecureConfirm] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isTeacher, setTeacher] = useState(false); // verifica que es un profesor
 
   const handleRegister = async () => {
     setError(null);
@@ -63,8 +60,6 @@ export default function RegisterScreen({ navigation, route }: Props) {
     }
     setLoading(true);
     try {
-      await createUser({fullName: fullName, email: email, password: password, password_confirm: confirm, isTeacher: isTeacher})
-      navigation.replace('Main');
       await createUserWithEmailAndPassword(auth, email.trim(), password);
       const user = auth.currentUser;
       if (user) {
@@ -91,6 +86,11 @@ export default function RegisterScreen({ navigation, route }: Props) {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }] }>
+      {/* Logo superior y marca (similar a Login) */}
+      <View style={styles.logoWrap}>
+        <Image source={require('../../../assets/logoN.png')} style={styles.logoImage} resizeMode="contain" />
+      </View>
+      <Text style={[styles.brand, { color: colors.text }]} accessibilityRole="header">WorkNote</Text>
 
       {/* Título y subtítulo */}
       <Text style={[styles.title, { color: colors.text }]}>Crear cuenta</Text>
@@ -120,10 +120,6 @@ export default function RegisterScreen({ navigation, route }: Props) {
           value={lastName}
           onChangeText={setLastName}
         />
-      </View>
-      <View style={styles.section}>
-        <Checkbox style={styles.checkbox} value={isTeacher} onValueChange={setTeacher} />
-        <Text style={[styles.paragraph, {color: colors.text}]}>Soy Profesor (dejar libre si eres alumno)</Text>
       </View>
 
       {/* Correo electrónico */}
@@ -202,19 +198,4 @@ const styles = StyleSheet.create({
   loginText: { fontSize: 13, fontFamily: fonts.medium },
   loginLink: { fontSize: 13, fontFamily: fonts.bold },
   error: { marginBottom: 12, textAlign: 'center', fontFamily: fonts.medium },
-  container: {
-    flex: 1,
-    marginHorizontal: 16,
-    marginVertical: 32,
-  },
-  section: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  paragraph: {
-    fontSize: 15,
-  },
-  checkbox: {
-    margin: 8,
-  },
 });

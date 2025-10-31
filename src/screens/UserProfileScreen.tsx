@@ -11,7 +11,7 @@ import { darkColors } from '../theme/colors';
 type Props = NativeStackScreenProps<any>;
 
 export default function UserProfileScreen({ route }: Props) {
-  const { colors } = useTheme();
+  const { colors } = useTheme() as any;
   const student = (route as any)?.params?.student as Student | undefined;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

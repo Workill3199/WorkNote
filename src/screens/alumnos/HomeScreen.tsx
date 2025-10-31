@@ -60,7 +60,9 @@ export default function HomeScreen({ navigation }: Props) {
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
+      if (auth) {
+        await signOut(auth);
+      }
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -113,10 +115,10 @@ export default function HomeScreen({ navigation }: Props) {
         icon: 'book-open-variant',
       },
       {
-        label: 'Estudiantes',
-        value: studentsCount.toString(),
-        subtitle: 'Conectados hoy',
-        icon: 'account-group',
+        label: 'Notificación',
+        value: '•',
+        subtitle: 'Dato: revisa tu perfil',
+        icon: 'information-outline',
       },
     ];
 
@@ -169,10 +171,10 @@ export default function HomeScreen({ navigation }: Props) {
   const QuickActions = () => {
     const rootNav = navigation.getParent()?.getParent();
     const actions = [
-      { icon: 'file-document', label: 'Nueva actividad', color: '#60A5FA', onPress: () => navigation.navigate('ActivityCreate') },
-      { icon: 'calendar', label: 'Programar clase', color: '#A78BFA', onPress: () => navigation.navigate('CourseCreate') },
-          { icon: 'account-plus', label: 'Agregar estudiante', color: '#22D3EE', onPress: () => navigation.navigate('StudentCreate') },
-      { icon: 'clipboard-check', label: 'Asistencia', color: '#34D399', onPress: openCoursePicker },
+      { icon: 'clipboard-text', label: 'Tareas pendientes', color: '#60A5FA', onPress: () => navigation.navigate('Activities') },
+      { icon: 'book-open-variant', label: 'Mis cursos', color: '#A78BFA', onPress: () => navigation.navigate('Courses') },
+      { icon: 'account', label: 'Mi perfil', color: '#22D3EE', onPress: () => navigation.navigate('UserProfile') },
+      { icon: 'bell', label: 'Notificaciones', color: '#34D399', onPress: () => navigation.navigate('NotificationsSettings') },
     ];
 
     return (
@@ -286,7 +288,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    position: 'sticky',
+    position: 'relative',
     top: 0,
     zIndex: 50,
     borderBottomWidth: 1,
