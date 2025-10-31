@@ -3,11 +3,11 @@ import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator,
 import { useTheme } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../config/firebase';
+import { auth } from '../../config/firebase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { fonts } from '../theme/typography';
-import { darkColors, lightColors } from '../theme/colors';
-import NeonButton from '../components/NeonButton';
+import { fonts } from '../../theme/typography';
+import { darkColors, lightColors } from '../../theme/colors';
+import NeonButton from '../../components/NeonButton';
 
 type Props = NativeStackScreenProps<any>;
 
@@ -56,7 +56,7 @@ export default function RegisterScreen({ navigation }: Props) {
     <View style={[styles.screen, { backgroundColor: colors.background }] }>
       {/* Logo superior y marca (similar a Login) */}
       <View style={styles.logoWrap}>
-        <Image source={require('../../assets/logoN.png')} style={styles.logoImage} resizeMode="contain" />
+        <Image source={require('../../../assets/logoN.png')} style={styles.logoImage} resizeMode="contain" />
       </View>
       <Text style={[styles.brand, { color: colors.text }]} accessibilityRole="header">WorkNote</Text>
 

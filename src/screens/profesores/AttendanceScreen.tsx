@@ -2,11 +2,11 @@ import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform, Alert, ScrollView, Modal, TextInput } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Student, listStudentsByCourse } from '../services/students';
-import { createActivity, listActivitiesByCourse, Activity } from '../services/activities';
-import { listCourses, Course } from '../services/courses';
-import { darkColors } from '../theme/colors';
-import NeonButton from '../components/NeonButton';
+import { Student, listStudentsByCourse } from '../../services/students';
+import { createActivity, listActivitiesByCourse, Activity } from '../../services/activities';
+import { listCourses, Course } from '../../services/courses';
+import { darkColors } from '../../theme/colors';
+import NeonButton from '../../components/NeonButton';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 type Props = NativeStackScreenProps<any>;

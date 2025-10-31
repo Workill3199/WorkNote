@@ -2,10 +2,10 @@ import React from 'react';
 import { View, Text, StyleSheet, Switch, TouchableOpacity, Alert } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useConfig } from '../context/ConfigContext';
+import { useConfig } from '../../context/ConfigContext';
 import { useTranslation } from 'react-i18next';
-import { scheduleTestNotification, useNotificationHandler } from '../utils/notifications';
-import NeonButton from '../components/NeonButton';
+import { scheduleTestNotification, useNotificationHandler } from '../../utils/notifications';
+import NeonButton from '../../components/NeonButton';
 
 export default function NotificationsSettingsScreen() {
   const { colors } = useTheme();

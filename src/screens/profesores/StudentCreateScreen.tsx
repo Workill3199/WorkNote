@@ -2,11 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { createStudent, updateStudent, Student } from '../services/students';
-import { listCourses, Course } from '../services/courses';
+import { createStudent, updateStudent, Student } from '../../services/students';
+import { listCourses, Course } from '../../services/courses';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
-import NeonButton from '../components/NeonButton';
+import NeonButton from '../../components/NeonButton';
 
 type Props = NativeStackScreenProps<any>;
 

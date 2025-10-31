@@ -1,16 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, TextInput, Platform, Linking } from 'react-native';
 import { useTheme } from '@react-navigation/native';
-import { darkColors } from '../theme/colors';
+import { darkColors } from '../../theme/colors';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { listActivities, Activity, deleteActivity, listActivitiesByCourse, listActivitiesByWorkshop, updateActivity } from '../services/activities';
-import ManagementCard from '../components/ManagementCard';
-import NeonButton from '../components/NeonButton';
-import { listCourses, Course, ensureCourseShareCode, getCourse } from '../services/courses';
-import { auth } from '../config/firebase';
+import { listActivities, Activity, deleteActivity, listActivitiesByCourse, listActivitiesByWorkshop, updateActivity } from '../../services/activities';
+import ManagementCard from '../../components/ManagementCard';
+import NeonButton from '../../components/NeonButton';
+import { listCourses, Course, ensureCourseShareCode, getCourse } from '../../services/courses';
+import { auth } from '../../config/firebase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { getDownloadURL, ref } from 'firebase/storage';
-import { storage } from '../config/firebase';
+import { storage } from '../../config/firebase';
 
 type Props = NativeStackScreenProps<any>;
 

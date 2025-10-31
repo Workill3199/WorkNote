@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { createCourse, updateCourse, Course } from '../services/courses';
+import { createCourse, updateCourse, Course } from '../../services/courses';
 
 type Props = NativeStackScreenProps<any>;
 

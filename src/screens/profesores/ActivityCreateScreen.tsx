@@ -2,10 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Platform, Alert } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { createActivity, updateActivity, deleteActivity, Activity } from '../services/activities';
-import { listCourses, Course } from '../services/courses';
-import { darkColors } from '../theme/colors';
-import { fonts } from '../theme/typography';
+import { createActivity, updateActivity, deleteActivity, Activity } from '../../services/activities';
+import { listCourses, Course } from '../../services/courses';
+import { darkColors } from '../../theme/colors';
+import { fonts } from '../../theme/typography';
 // Adjuntos removidos: no usamos Storage aquí
 
 type Props = NativeStackScreenProps<any>;

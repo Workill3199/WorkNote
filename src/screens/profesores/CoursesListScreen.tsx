@@ -2,13 +2,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, TextInput, Platform } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { listCourses, Course, deleteCourse, joinCourseByShareCode } from '../services/courses';
-import { auth } from '../config/firebase';
-import { listStudentsByCourse } from '../services/students';
-import ManagementCard from '../components/ManagementCard';
-import CourseListItem from '../components/CourseListItem';
-import { darkColors } from '../theme/colors';
-import { fonts } from '../theme/typography';
+import { listCourses, Course, deleteCourse, joinCourseByShareCode } from '../../services/courses';
+import { auth } from '../../config/firebase';
+import { listStudentsByCourse } from '../../services/students';
+import ManagementCard from '../../components/ManagementCard';
+import CourseListItem from '../../components/CourseListItem';
+import { darkColors } from '../../theme/colors';
+import { fonts } from '../../theme/typography';
 
 type Props = NativeStackScreenProps<any>;
 

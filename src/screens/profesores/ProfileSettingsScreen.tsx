@@ -3,9 +3,9 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, Switch, Alert, TextInp
 import { useTheme, useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { auth, app, storage } from '../config/firebase';
+import { auth, app, storage } from '../../config/firebase';
 import { signOut, updateProfile } from 'firebase/auth';
-import { useConfig } from '../context/ConfigContext';
+import { useConfig } from '../../context/ConfigContext';
 import * as ImagePicker from 'expo-image-picker';
 import { ref, uploadBytes, getDownloadURL, listAll } from 'firebase/storage';
 import { LinearGradient } from 'expo-linear-gradient';

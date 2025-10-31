@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { listWorkshops, Workshop, deleteWorkshop } from '../services/workshops';
-import { listStudents, Student } from '../services/students';
-import ManagementCard from '../components/ManagementCard';
+import { listWorkshops, Workshop, deleteWorkshop } from '../../services/workshops';
+import { listStudents, Student } from '../../services/students';
+import ManagementCard from '../../components/ManagementCard';
 
 type Props = NativeStackScreenProps<any>;
 

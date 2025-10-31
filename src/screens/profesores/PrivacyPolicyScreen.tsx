@@ -1,6 +1,6 @@
 import React from 'react';
 import { SafeAreaView, ScrollView, Text, View } from 'react-native';
-import { darkColors } from '../theme/colors';
+import { darkColors } from '../../theme/colors';
 
 export default function PrivacyPolicyScreen() {
   return (

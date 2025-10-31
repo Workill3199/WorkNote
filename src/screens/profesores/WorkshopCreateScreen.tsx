@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { createWorkshop, updateWorkshop, Workshop } from '../services/workshops';
-import NeonButton from '../components/NeonButton';
+import { createWorkshop, updateWorkshop, Workshop } from '../../services/workshops';
+import NeonButton from '../../components/NeonButton';
 
 type Props = NativeStackScreenProps<any>;
 

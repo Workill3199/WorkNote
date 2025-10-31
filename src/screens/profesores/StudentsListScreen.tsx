@@ -2,12 +2,12 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, TextInput, Platform } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { listStudents, Student, deleteStudent, listStudentsByCourse, listStudentsByWorkshop } from '../services/students';
-import { listCourses, Course } from '../services/courses';
-import NeonButton from '../components/NeonButton';
-import StudentListItem from '../components/StudentListItem';
-import { fonts } from '../theme/typography';
-import { darkColors } from '../theme/colors';
+import { listStudents, Student, deleteStudent, listStudentsByCourse, listStudentsByWorkshop } from '../../services/students';
+import { listCourses, Course } from '../../services/courses';
+import NeonButton from '../../components/NeonButton';
+import StudentListItem from '../../components/StudentListItem';
+import { fonts } from '../../theme/typography';
+import { darkColors } from '../../theme/colors';
 
 type Props = NativeStackScreenProps<any>;
 

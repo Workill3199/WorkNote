@@ -5,12 +5,12 @@ import { useTheme } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { signOut } from 'firebase/auth';
-import { auth } from '../config/firebase';
-import { listCourses, Course } from '../services/courses';
-import { listWorkshops } from '../services/workshops';
-import { listStudents } from '../services/students';
-import { listActivities } from '../services/activities';
-import { darkColors, lightColors } from '../theme/colors';
+import { auth } from '../../config/firebase';
+import { listCourses, Course } from '../../services/courses';
+import { listWorkshops } from '../../services/workshops';
+import { listStudents } from '../../services/students';
+import { listActivities } from '../../services/activities';
+import { darkColors, lightColors } from '../../theme/colors';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<any>;
