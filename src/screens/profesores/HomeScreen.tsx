@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Dimensions, Modal, ActivityIndicator } from 'react-native';
-// import { BlurView } from 'expo-blur';
 import { useTheme } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -12,6 +11,7 @@ import { listStudents } from '../../services/students';
 import { listActivities } from '../../services/activities';
 import { darkColors, lightColors } from '../../theme/colors';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getUserRole } from '../../services/users';
 
 type Props = NativeStackScreenProps<any>;
 
@@ -25,7 +25,7 @@ export default function HomeScreen({ navigation }: Props) {
   const username = user?.displayName || user?.email?.split('@')[0] || 'Alex';
   const photoURL = user?.photoURL || null;
   const initial = (username?.[0] || 'A').toUpperCase();
-
+  const [getRole, setRole] = useState("alumno")
   const [coursesCount, setCoursesCount] = useState(0);
   const [workshopsCount, setWorkshopsCount] = useState(0);
   const [studentsCount, setStudentsCount] = useState(0);
@@ -39,16 +39,18 @@ export default function HomeScreen({ navigation }: Props) {
 
   const loadCounts = async () => {
     try {
-      const [c, w, s, a] = await Promise.all([
+      const [c, w, s, a,r] = await Promise.all([
         listCourses(),
         listWorkshops(),
         listStudents(),
         listActivities(),
+        getUserRole()
       ]);
       setCoursesCount(c.length);
       setWorkshopsCount(w.length);
       setStudentsCount(s.length);
       setActivitiesCount(a.length);
+      setRole(r);
     } catch (error) {
       console.error('Error loading counts:', error);
     }
@@ -90,6 +92,7 @@ export default function HomeScreen({ navigation }: Props) {
               </TouchableOpacity>
             </View>
             <Text style={[styles.subtitle, { color: palette.textSecondary }]}>Aquí tienes el resumen</Text>
+            <Text style={[styles.subtitle, { color: palette.textSecondary }]}>tu rol es: {getRole}</Text>
           </View>
         </View>
         <TouchableOpacity style={styles.notificationButton} onPress={handleLogout}>
@@ -169,7 +172,7 @@ export default function HomeScreen({ navigation }: Props) {
   );
 
   const QuickActions = () => {
-    const rootNav = navigation.getParent()?.getParent();
+    const rootNav = navigation.getParent()
     const actions = [
       { icon: 'file-document', label: 'Nueva actividad', color: '#60A5FA', onPress: () => navigation.navigate('ActivityCreate') },
       { icon: 'calendar', label: 'Programar clase', color: '#A78BFA', onPress: () => navigation.navigate('CourseCreate') },

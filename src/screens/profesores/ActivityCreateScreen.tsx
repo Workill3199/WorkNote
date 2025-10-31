@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Platform, Alert, ScrollView } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { storage } from '../../config/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -9,12 +9,14 @@ import { createActivity, updateActivity, deleteActivity, Activity } from '../../
 import { listCourses, Course } from '../../services/courses';
 import { darkColors } from '../../theme/colors';
 import { fonts } from '../../theme/typography';
+import { SafeAreaView } from 'react-native-safe-area-context';
 // Adjuntos removidos: no usamos Storage aquí
 
 type Props = NativeStackScreenProps<any>;
 
 export default function ActivityCreateScreen({ navigation, route }: Props) {
   const { colors } = useTheme();
+  const palette = darkColors
   const editItem = (route as any)?.params?.editItem as Activity | undefined;
   const [title, setTitle] = useState(editItem?.title || '');
   const [description, setDescription] = useState(editItem?.description || '');
@@ -123,6 +125,8 @@ export default function ActivityCreateScreen({ navigation, route }: Props) {
   };
 
   return (
+  <SafeAreaView>
+    <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={true}>
     <View style={[styles.container, { backgroundColor: colors.background }] }>
       <Text style={[styles.title, { color: colors.text }]}>{editItem?.id ? 'Editar Actividad' : 'Nueva Actividad'}</Text>
       {!!error && <Text style={styles.error}>{error}</Text>}
@@ -294,8 +298,10 @@ export default function ActivityCreateScreen({ navigation, route }: Props) {
             {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Eliminar</Text>}
           </TouchableOpacity>
         )}
-      </View>
     </View>
+      </View>
+      </ScrollView>
+      </SafeAreaView>
   );
 }
 
@@ -324,4 +330,9 @@ const styles = StyleSheet.create({
   chipText: { color: darkColors.mutedText, fontSize: 12 },
   chipTextActive: { color: darkColors.primary },
   hint: { fontSize: 11, color: darkColors.mutedText, marginBottom: 12 },
+  scrollContent: {
+  padding: 20,
+  gap: 20,
+  paddingBottom: 100,
+  },
 });

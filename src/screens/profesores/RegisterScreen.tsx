@@ -9,27 +9,14 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { fonts } from '../../theme/typography';
 import { darkColors, lightColors } from '../../theme/colors';
 import NeonButton from '../../components/NeonButton';
-import { setUserRole, getLastSelectedRole } from '../../utils/roles';
+import { createUser } from '../../services/users';
 
 type Props = NativeStackScreenProps<any>;
 
 export default function RegisterScreen({ navigation, route }: Props) {
   const { colors } = useTheme();
   const palette = colors.background === darkColors.background ? darkColors : lightColors;
-  const [role, setRole] = useState<'profesor' | 'alumno'>(((route as any)?.params?.role as 'profesor' | 'alumno') || 'profesor');
 
-  useEffect(() => {
-    const resolveRole = async () => {
-      const paramRole = ((route as any)?.params?.role as 'profesor' | 'alumno') || null;
-      if (paramRole) {
-        setRole(paramRole);
-        return;
-      }
-      const last = await getLastSelectedRole();
-      if (last) setRole(last);
-    };
-    resolveRole();
-  }, [route]);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -39,7 +26,19 @@ export default function RegisterScreen({ navigation, route }: Props) {
   const [secureConfirm, setSecureConfirm] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isTeacher, setTeacher] = useState(false); // verifica que es un profesor
 
+  useEffect(() => {
+    const resolveRole = async () => {
+      const paramRole = ((route as any)?.params?.role as 'profesor' | 'alumno') || null;
+      if (paramRole == 'profesor') {
+        setTeacher(true);
+        return;
+      }
+      
+    };
+    resolveRole();
+  }, [route]);
   const handleRegister = async () => {
     setError(null);
     if (!firstName || !lastName || !email || !password || !confirm) {
@@ -60,6 +59,10 @@ export default function RegisterScreen({ navigation, route }: Props) {
     }
     setLoading(true);
     try {
+      const displayName = `${firstName.trim()} ${lastName.trim()}`.trim();
+
+      await createUser({fullName: displayName, email: email, password: password, password_confirm: confirm, isTeacher: isTeacher})
+      navigation.replace('Main');
       await createUserWithEmailAndPassword(auth, email.trim(), password);
       const user = auth.currentUser;
       if (user) {
@@ -67,12 +70,8 @@ export default function RegisterScreen({ navigation, route }: Props) {
         try {
           await updateProfile(user, { displayName });
         } catch {}
-        // Persistimos el rol para futuras sesiones
-        try {
-          await setUserRole(user.uid, role);
-        } catch {}
       }
-      if (role === 'alumno') {
+      if (!isTeacher) {
         navigation.replace('StudentMain');
       } else {
         navigation.replace('Main');
@@ -86,11 +85,6 @@ export default function RegisterScreen({ navigation, route }: Props) {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }] }>
-      {/* Logo superior y marca (similar a Login) */}
-      <View style={styles.logoWrap}>
-        <Image source={require('../../../assets/logoN.png')} style={styles.logoImage} resizeMode="contain" />
-      </View>
-      <Text style={[styles.brand, { color: colors.text }]} accessibilityRole="header">WorkNote</Text>
 
       {/* Título y subtítulo */}
       <Text style={[styles.title, { color: colors.text }]}>Crear cuenta</Text>
@@ -198,4 +192,19 @@ const styles = StyleSheet.create({
   loginText: { fontSize: 13, fontFamily: fonts.medium },
   loginLink: { fontSize: 13, fontFamily: fonts.bold },
   error: { marginBottom: 12, textAlign: 'center', fontFamily: fonts.medium },
+  container: {
+    flex: 1,
+    marginHorizontal: 16,
+    marginVertical: 32,
+  },
+  section: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  paragraph: {
+    fontSize: 15,
+  },
+  checkbox: {
+    margin: 8,
+  },
 });

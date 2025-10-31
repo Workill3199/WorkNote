@@ -8,8 +8,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { fonts } from '../theme/typography';
 import { darkColors, lightColors } from '../theme/colors';
 import NeonButton from '../components/NeonButton';
-import { getUserRole, getLastSelectedRole, UserRole } from '../utils/roles';
-
+import { getUserRole } from '../services/users';
 
 type Props = NativeStackScreenProps<any>;
 
@@ -21,7 +20,6 @@ export default function LoginScreen({ navigation }: Props) {
   const [secure, setSecure] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const handleLogin = async () => {
     setError(null);
     if (!email || !password) {
@@ -35,42 +33,21 @@ export default function LoginScreen({ navigation }: Props) {
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email.trim(), password);
-      const uid = auth.currentUser?.uid;
-      let role: UserRole | null = null;
-      if (uid) {
-        role = await getUserRole(uid);
-      }
-      if (!role) {
-        // Fallback: si no hay rol guardado aún, usamos la última selección local
-        role = await getLastSelectedRole();
-      }
-      if (role === 'alumno') {
+
+      const role = await getUserRole()
+
+      if (role! == 'alumno') {
         navigation.replace('StudentMain');
       } else {
         navigation.replace('Main');
       }
     } catch (e: any) {
-      setError(e?.message ?? 'Error al iniciar sesión');
+      setError('Email o contraseña incorrecta.');
+      console.log(e?.message)
     } finally {
       setLoading(false);
     }
   };
-
-  // Si hay sesión persistida, decidir navegación por rol automáticamente
-  React.useEffect(() => {
-    const bootstrap = async () => {
-      const uid = auth.currentUser?.uid;
-      if (!uid) return;
-      let role = await getUserRole(uid);
-      if (!role) role = await getLastSelectedRole();
-      if (role === 'alumno') {
-        navigation.replace('StudentMain');
-      } else {
-        navigation.replace('Main');
-      }
-    };
-    bootstrap();
-  }, [navigation]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }] }>
