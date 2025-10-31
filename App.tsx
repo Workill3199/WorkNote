@@ -139,8 +139,8 @@ function AppNavigation() {
           headerTitleStyle: { fontFamily: fonts.bold },
         }}
       >
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Register" component={RegisterScreen} />
+        <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
         {/* Rutas internas usadas por acciones del Home */}
         <Stack.Screen name="Courses" component={CoursesListScreen} options={{ title: 'Cursos' }} />

@@ -6,6 +6,7 @@ import { createActivity, updateActivity, deleteActivity, Activity } from '../../
 import { listCourses, Course } from '../../services/courses';
 import { darkColors } from '../../theme/colors';
 import { fonts } from '../../theme/typography';
+import { SafeAreaView } from 'react-native-safe-area-context';
 // Adjuntos removidos: no usamos Storage aquí
 
 type Props = NativeStackScreenProps<any>;
@@ -262,4 +263,9 @@ const styles = StyleSheet.create({
   chipText: { color: darkColors.mutedText, fontSize: 12 },
   chipTextActive: { color: darkColors.primary },
   hint: { fontSize: 11, color: darkColors.mutedText, marginBottom: 12 },
+  scrollContent: {
+  padding: 20,
+  gap: 20,
+  paddingBottom: 100,
+  },
 });

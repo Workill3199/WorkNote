@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../../config/firebase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { fonts } from '../../theme/typography';
+import { Checkbox } from 'expo-checkbox';
 import { darkColors, lightColors } from '../../theme/colors';
 import NeonButton from '../../components/NeonButton';
+import { createUser } from '../../services/users';
 
 type Props = NativeStackScreenProps<any>;
 
@@ -22,6 +24,7 @@ export default function RegisterScreen({ navigation }: Props) {
   const [secureConfirm, setSecureConfirm] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isTeacher, setTeacher] = useState(false); // verifica que es un profesor
 
   const handleRegister = async () => {
     setError(null);
@@ -43,7 +46,7 @@ export default function RegisterScreen({ navigation }: Props) {
     }
     setLoading(true);
     try {
-      await createUserWithEmailAndPassword(auth, email.trim(), password);
+      await createUser({fullName: fullName, email: email, password: password, password_confirm: confirm, isTeacher: isTeacher})
       navigation.replace('Main');
     } catch (e: any) {
       setError(e?.message ?? 'Error al registrarse');
@@ -54,11 +57,6 @@ export default function RegisterScreen({ navigation }: Props) {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }] }>
-      {/* Logo superior y marca (similar a Login) */}
-      <View style={styles.logoWrap}>
-        <Image source={require('../../../assets/logoN.png')} style={styles.logoImage} resizeMode="contain" />
-      </View>
-      <Text style={[styles.brand, { color: colors.text }]} accessibilityRole="header">WorkNote</Text>
 
       {/* Título y subtítulo */}
       <Text style={[styles.title, { color: colors.text }]}>Crear cuenta</Text>
@@ -76,6 +74,10 @@ export default function RegisterScreen({ navigation }: Props) {
           value={fullName}
           onChangeText={setFullName}
         />
+      </View>
+      <View style={styles.section}>
+        <Checkbox style={styles.checkbox} value={isTeacher} onValueChange={setTeacher} />
+        <Text style={[styles.paragraph, {color: colors.text}]}>Soy Profesor (dejar libre si eres alumno)</Text>
       </View>
 
       {/* Correo electrónico */}
@@ -154,4 +156,19 @@ const styles = StyleSheet.create({
   loginText: { fontSize: 13, fontFamily: fonts.medium },
   loginLink: { fontSize: 13, fontFamily: fonts.bold },
   error: { marginBottom: 12, textAlign: 'center', fontFamily: fonts.medium },
+  container: {
+    flex: 1,
+    marginHorizontal: 16,
+    marginVertical: 32,
+  },
+  section: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  paragraph: {
+    fontSize: 15,
+  },
+  checkbox: {
+    margin: 8,
+  },
 });
