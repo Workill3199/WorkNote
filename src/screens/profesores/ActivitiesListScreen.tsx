@@ -1,16 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, TextInput, Platform, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, TextInput, Platform } from 'react-native';
 import { useTheme } from '@react-navigation/native';
-import { darkColors } from '../../theme/colors';
+import { darkColors } from '../theme/colors';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { listActivities, Activity, deleteActivity, listActivitiesByCourse, listActivitiesByWorkshop, updateActivity } from '../../services/activities';
-import ManagementCard from '../../components/ManagementCard';
-import NeonButton from '../../components/NeonButton';
-import { listCourses, Course, ensureCourseShareCode, getCourse } from '../../services/courses';
-import { auth } from '../../config/firebase';
+import { listActivities, Activity, deleteActivity, listActivitiesByCourse, listActivitiesByWorkshop, updateActivity } from '../services/activities';
+import ManagementCard from '../components/ManagementCard';
+import NeonButton from '../components/NeonButton';
+import { listCourses, Course } from '../services/courses';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { getDownloadURL, ref } from 'firebase/storage';
-import { storage } from '../../config/firebase';
 
 type Props = NativeStackScreenProps<any>;
 
@@ -23,9 +20,6 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<'Todas' | 'Pendientes' | 'Completadas' | 'Vencidas' | 'Alta' | 'Media' | 'Baja'>('Todas');
   const courseTitleById = useMemo(() => Object.fromEntries(courses.map(c => [c.id!, c.title])), [courses]);
-  const [codeOpen, setCodeOpen] = useState(false);
-  const [codeValue, setCodeValue] = useState<string>('');
-  const [codeBusy, setCodeBusy] = useState<boolean>(false);
 
   // Tokens portados desde "actividades" basados en el tema oscuro
   const T = {
@@ -58,40 +52,6 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
         data = await listActivities();
       }
       setItems(data);
-      // Normalización persistente de URLs antiguas de adjuntos guardadas en Firestore
-      // Reescribe las URLs con `getDownloadURL` para evitar errores `o?name=` en el futuro
-      try {
-        await Promise.all(
-          (data || []).map(async (item) => {
-            const atts = (item as any)?.attachments;
-            if (!Array.isArray(atts) || atts.length === 0) return;
-            const needsFix = atts.some((a: any) => typeof a?.url === 'string' && a.url.includes('/o?name='));
-            if (!needsFix) return;
-            const fixed = await Promise.all(
-              atts.map(async (a: any) => {
-                if (typeof a?.url === 'string' && a.url.includes('/o?name=')) {
-                  try {
-                    const urlObj = new URL(a.url);
-                    const rawName = urlObj.searchParams.get('name') || '';
-                    const path = decodeURIComponent(rawName);
-                    const r = ref(storage, path);
-                    const newUrl = await getDownloadURL(r);
-                    return { ...a, url: newUrl };
-                  } catch {
-                    return a;
-                  }
-                }
-                return a;
-              })
-            );
-            try {
-              await updateActivity(item.id!, { attachments: fixed as any });
-              // Actualizar en memoria para reflejar el cambio sin esperar recarga
-              setItems((prev) => prev.map((it) => (it.id === item.id ? { ...it, attachments: fixed } : it)));
-            } catch {}
-          })
-        );
-      } catch {}
     } catch (e: any) {
       setError(e?.message ?? 'Error al cargar actividades');
     } finally {
@@ -131,8 +91,6 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return items.filter((item) => {
-      // Ocultar registros de asistencia: solo se muestran en la pantalla de Asistencia
-      if ((item.category || '').toLowerCase() === 'asistencia') return false;
       const matchesText = (
         (item.title ?? '').toLowerCase().includes(q) ||
         (item.description ?? '').toLowerCase().includes(q)
@@ -168,29 +126,6 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
     ]);
   };
 
-  const filterCourseId = (route as any)?.params?.filterCourseId as string | undefined;
-  const selectedCourse = useMemo(() => courses.find(c => c.id === filterCourseId), [courses, filterCourseId]);
-  const isOwner = (selectedCourse?.ownerId ?? '') === (auth?.currentUser?.uid || '');
-
-  // Normaliza URLs antiguas de Storage con formato REST `o?name=` y devuelve `getDownloadURL`
-  const resolveAttachmentUrl = async (att: { url: string }): Promise<string | undefined> => {
-    const u = att?.url || '';
-    try {
-      if (u.includes('/o?name=')) {
-        const urlObj = new URL(u);
-        const rawName = urlObj.searchParams.get('name') || '';
-        const path = decodeURIComponent(rawName);
-        const r = ref(storage, path);
-        const fixed = await getDownloadURL(r);
-        return fixed;
-      }
-      return u;
-    } catch {
-      // Si no podemos convertir el URL legacy, devolvemos undefined para evitar solicitar `o?name=`
-      return undefined;
-    }
-  };
-
   return (
     <View style={[styles.container, { backgroundColor: T.bg } ]}>
       <View style={styles.header}>
@@ -198,46 +133,24 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
           <MaterialCommunityIcons name="clipboard-list" size={18} color={T.text} />
           <Text style={[styles.title, { color: T.text }]}>Actividades</Text>
         </View>
-        <View style={styles.headerActions}>
-          {!!filterCourseId && isOwner && (
-            <NeonButton
-              title="Código"
-              onPress={async () => {
-                if (!filterCourseId) return;
-                setCodeBusy(true);
-                try {
-                  const course = await getCourse(filterCourseId);
-                  let code = course?.shareCode || '';
-                  if (!code) {
-                    code = await ensureCourseShareCode(filterCourseId);
-                    // actualizar cache local de cursos
-                    setCourses(prev => prev.map(c => c.id === filterCourseId ? { ...c, shareCode: code } as any : c));
-                  }
-                  setCodeValue(code);
-                  setCodeOpen(true);
-                } catch (e) {
-                  setCodeValue('');
-                  setCodeOpen(true);
-                } finally {
-                  setCodeBusy(false);
-                }
-              }}
-              colors={{ ...colors, primary: T.accent } as any}
-              shadowRadius={12}
-              elevation={6}
-              style={[styles.addBtn, { backgroundColor: T.accent, marginRight: 8 }]}
-              textStyle={styles.addText}
-            />
-          )}
-          {!!filterCourseId && (
+        <View style={styles.headerRight}>
+          {(((route as any)?.params?.filterCourseId as string | undefined) || ((route as any)?.params?.filterWorkshopId as string | undefined)) && (
             <NeonButton
               title="Alumnos"
-              onPress={() => navigation.navigate('Students', { filterCourseId })}
-              colors={{ ...colors, primary: T.accent } as any}
+              onPress={() => {
+                const filterCourseId = (route as any)?.params?.filterCourseId as string | undefined;
+                const filterWorkshopId = (route as any)?.params?.filterWorkshopId as string | undefined;
+                if (filterCourseId) {
+                  navigation.navigate('Students', { filterCourseId });
+                } else if (filterWorkshopId) {
+                  navigation.navigate('Students', { filterWorkshopId });
+                }
+              }}
+              colors={{ ...colors, primary: T.secondary } as any}
               shadowRadius={12}
               elevation={6}
-              style={[styles.addBtn, { backgroundColor: T.accent, marginRight: 8 }]}
-              textStyle={styles.addText}
+              style={[styles.addBtn, { backgroundColor: T.secondary }]}
+              textStyle={[styles.addText, { color: T.text }]}
             />
           )}
           <NeonButton
@@ -251,36 +164,6 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
           />
         </View>
       </View>
-
-      {/* Popup de código de clase */}
-      {codeOpen && (
-        <View style={styles.codePopup}>
-          <View style={styles.codeRow}>
-            <MaterialCommunityIcons name="key" size={16} color={T.accent} />
-            <Text style={[styles.codeText, { color: T.text }]}>{codeBusy ? '...' : (codeValue || selectedCourse?.shareCode || '—')}</Text>
-            {Platform.OS === 'web' && (
-              <TouchableOpacity
-                style={[styles.copyBtn, { backgroundColor: T.primary }]}
-                onPress={async () => {
-                  try {
-                    const toCopy = codeValue || selectedCourse?.shareCode || '';
-                    if (!toCopy) return;
-                    await (navigator as any)?.clipboard?.writeText(toCopy);
-                    Alert.alert('Copiado', 'Código copiado al portapapeles');
-                  } catch {
-                    Alert.alert('Aviso', 'No se pudo copiar automáticamente');
-                  }
-                }}
-              >
-                <Text style={styles.addText}>Copiar</Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity onPress={() => setCodeOpen(false)}>
-              <MaterialCommunityIcons name="close" size={16} color={T.text} />
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
 
       {/* Barra de búsqueda (glass) */}
       <View style={styles.searchRow}>
@@ -388,39 +271,6 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
                 </View>
               )}
 
-              {!!(item as any)?.attachments?.length && (
-                <View style={styles.badgesRow}>
-                  <View style={[styles.badge, { backgroundColor: 'rgba(96,165,250,0.12)', borderColor: T.accent }] }>
-                    <MaterialCommunityIcons name="paperclip" size={14} color={HEX.text} />
-                    <Text style={[styles.badgeText, { color: HEX.text }]}>Adjunto disponible</Text>
-                  </View>
-                  <TouchableOpacity
-                    style={[styles.badge, { backgroundColor: 'transparent', borderColor: T.accent }]}
-                    onPress={async () => {
-                      try {
-                        const att = (item as any)?.attachments?.[0];
-                        if (!att?.url) return;
-                        const url = await resolveAttachmentUrl(att);
-                        if (!url) {
-                          Alert.alert('Aviso', 'El adjunto no está disponible o su URL es inválido. Vuelve a adjuntarlo.');
-                          return;
-                        }
-                        if (Platform.OS === 'web') {
-                          (window as any)?.open(url, '_blank');
-                        } else {
-                          await Linking.openURL(url);
-                        }
-                      } catch {
-                        Alert.alert('Aviso', 'No se pudo abrir el adjunto');
-                      }
-                    }}
-                  >
-                    <MaterialCommunityIcons name="download" size={14} color={T.accent} />
-                    <Text style={[styles.badgeText, { color: T.accent }]}>Descargar</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-
             </View>
           </View>
         );
@@ -433,16 +283,12 @@ const styles = StyleSheet.create({
   container: { flex: 1, padding: 16 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 as any },
-  headerActions: { flexDirection: 'row', alignItems: 'center' },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 as any },
   title: { fontSize: 18, fontWeight: '700' },
   addBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
   addText: { color: '#1A1A2E', fontWeight: '700' },
   error: { marginTop: 8, textAlign: 'center' },
   empty: { marginTop: 12, textAlign: 'center' },
-  codePopup: { borderWidth: 1.5, borderColor: darkColors.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: Platform.OS === 'web' ? 'rgba(42,42,58,0.7)' : darkColors.card, ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' } as any) : {}), marginBottom: 8 },
-  codeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 as any },
-  codeText: { flex: 1, fontSize: 16, fontWeight: '700' },
-  copyBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, marginLeft: 8 },
   searchRow: { marginBottom: 8 },
   searchBox: { flexDirection: 'row', alignItems: 'center', gap: 8 as any, borderRadius: 12, borderWidth: 1.5, borderColor: darkColors.border, paddingHorizontal: 12, paddingVertical: 10, shadowColor: darkColors.accent, shadowOpacity: Platform.OS === 'web' ? 0 : 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
   searchInput: { flex: 1, fontSize: 14 },
