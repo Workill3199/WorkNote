@@ -8,6 +8,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { fonts } from '../theme/typography';
 import { darkColors, lightColors } from '../theme/colors';
 import NeonButton from '../components/NeonButton';
+import { getUserRole, getLastSelectedRole, UserRole } from '../utils/roles';
 
 
 type Props = NativeStackScreenProps<any>;
@@ -34,7 +35,20 @@ export default function LoginScreen({ navigation }: Props) {
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email.trim(), password);
-      navigation.replace('Main');
+      const uid = auth.currentUser?.uid;
+      let role: UserRole | null = null;
+      if (uid) {
+        role = await getUserRole(uid);
+      }
+      if (!role) {
+        // Fallback: si no hay rol guardado aún, usamos la última selección local
+        role = await getLastSelectedRole();
+      }
+      if (role === 'alumno') {
+        navigation.replace('StudentMain');
+      } else {
+        navigation.replace('Main');
+      }
     } catch (e: any) {
       setError(e?.message ?? 'Error al iniciar sesión');
     } finally {
@@ -42,11 +56,27 @@ export default function LoginScreen({ navigation }: Props) {
     }
   };
 
+  // Si hay sesión persistida, decidir navegación por rol automáticamente
+  React.useEffect(() => {
+    const bootstrap = async () => {
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
+      let role = await getUserRole(uid);
+      if (!role) role = await getLastSelectedRole();
+      if (role === 'alumno') {
+        navigation.replace('StudentMain');
+      } else {
+        navigation.replace('Main');
+      }
+    };
+    bootstrap();
+  }, [navigation]);
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }] }>
       {/* Logo superior */}
       <View style={styles.logoWrap}>
-        <Image source={require('../../assets/logoN.png')} style={styles.logoImage} resizeMode="contain" />
+        <Image source={require('../../assets/logoA.png')} style={styles.logoImage} resizeMode="contain" />
       </View>
 
       {/* Marca */}
@@ -98,7 +128,7 @@ export default function LoginScreen({ navigation }: Props) {
       {/* Registro */}
       <View style={styles.signupRow}>
         <Text style={[styles.signupText, { color: colors.text }]}>¿No tienes cuenta?</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+        <TouchableOpacity onPress={() => navigation.navigate('RegisterRole')}>
           <Text style={[styles.signupLink, { color: colors.text }]}> Regístrate</Text>
         </TouchableOpacity>
       </View>

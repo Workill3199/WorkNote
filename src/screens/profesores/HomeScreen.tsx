@@ -60,7 +60,9 @@ export default function HomeScreen({ navigation }: Props) {
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
+      if (auth) {
+        await signOut(auth);
+      }
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -286,7 +288,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    position: 'sticky',
+    position: 'relative',
     top: 0,
     zIndex: 50,
     borderBottomWidth: 1,

@@ -123,12 +123,21 @@ async function ensureJoinedUserStudentForCourse(courseId: string): Promise<void>
     .find(r => (r.ownerId ?? '') === uid);
   if (existing) return;
   const email = auth?.currentUser?.email || '';
-  const displayName = auth?.currentUser?.displayName || '';
-  const firstName = (displayName || (email ? email.split('@')[0] : 'Alumno')).trim();
+  const displayName = (auth?.currentUser?.displayName || '').trim();
+  let firstName = '';
+  let lastName = '';
+  if (displayName) {
+    const parts = displayName.split(/\s+/).filter(Boolean);
+    firstName = parts[0] || '';
+    lastName = parts.slice(1).join(' ') || '';
+  } else {
+    firstName = (email ? email.split('@')[0] : 'Alumno').trim();
+    lastName = '';
+  }
   try {
     await addDoc(studentsCol(), {
       firstName,
-      lastName: '',
+      lastName,
       email,
       classLabel: 'A',
       courseId,
