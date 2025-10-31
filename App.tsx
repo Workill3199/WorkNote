@@ -26,6 +26,7 @@ import NotificationsSettingsScreen from './src/screens/profesores/NotificationsS
 import PrivacySettingsScreen from './src/screens/profesores/PrivacySettingsScreen';
 import PrivacyPolicyScreen from './src/screens/profesores/PrivacyPolicyScreen';
 import TermsScreen from './src/screens/profesores/TermsScreen';
+import UserProfileScreen from './src/screens/UserProfileScreen';
 import './src/i18n';
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import { Manrope_700Bold } from '@expo-google-fonts/manrope';
@@ -152,6 +153,7 @@ function AppNavigation() {
         <Stack.Screen name="ActivityCreate" component={ActivityCreateScreen} options={{ title: 'Nueva Actividad' }} />
         <Stack.Screen name="Students" component={StudentsListScreen} options={{ title: 'Estudiantes' }} />
         <Stack.Screen name="StudentCreate" component={StudentCreateScreen} options={{ title: 'Registrar Estudiante' }} />
+        <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: 'Perfil de Usuario' }} />
         <Stack.Screen name="Attendance" component={AttendanceScreen} options={{ title: 'Asistencia' }} />
         <Stack.Screen name="ProfileSettings" component={ProfileSettingsScreen} options={{ headerShown: false }} />
         <Stack.Screen name="NotificationsSettings" component={NotificationsSettingsScreen} options={{ title: 'Notificaciones' }} />

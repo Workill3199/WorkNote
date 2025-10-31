@@ -152,7 +152,7 @@ export default function StudentsListScreen({ navigation, route }: Props) {
                   status={'Activo'}
                   classLabel={(item.classLabel || 'A').toUpperCase()}
                   variant="tile"
-                  onPress={() => navigation.navigate('StudentCreate', { editItem: item })}
+                  onPress={() => navigation.navigate('UserProfile', { student: item })}
                 />
               </View>
             ))}
@@ -167,7 +167,7 @@ export default function StudentsListScreen({ navigation, route }: Props) {
                 progress={0}
                 status={'Activo'}
                 classLabel={(item.classLabel || 'A').toUpperCase()}
-                onPress={() => navigation.navigate('StudentCreate', { editItem: item })}
+                onPress={() => navigation.navigate('UserProfile', { student: item })}
               />
             ))}
           </>
