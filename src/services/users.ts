@@ -1,8 +1,10 @@
+// Servicio de usuarios: registro en Auth + documento de perfil, obtener rol y listar por UID.
 import { addDoc, collection, serverTimestamp, updateDoc, doc, deleteDoc, where, getDoc, query, getDocs } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth as configAuth } from '../config/firebase';
 
+// Tipo de usuario de aplicación (perfil almacenado en Firestore)
 export type User = {
   fullName: string
   email: string
@@ -13,8 +15,10 @@ export type User = {
 };
 
 
+// Colección de perfiles
 const col = () => collection(db!, 'users');
 
+// Crea usuario: alta en Firebase Auth y documento de perfil
 export async function createUser(user: User): Promise<string> {
   try {
     const userCredential = await createUserWithEmailAndPassword(
@@ -43,6 +47,7 @@ export async function createUser(user: User): Promise<string> {
     throw error;
   }
 }
+// Obtiene rol del usuario autenticado desde su documento de perfil
 export async function getUserRole() {
   try {
     const user = configAuth!.currentUser;
@@ -66,5 +71,23 @@ export async function getUserRole() {
   } catch (error) {
     console.error('Error obteniendo rol:', error);
     return null;
+  }
+}
+
+// Lista perfiles para varios UIDs (evita duplicados)
+export async function listUsersByUids(uids: string[]): Promise<(User & { id?: string; uid?: string })[]> {
+  try {
+    const unique = Array.from(new Set((uids || []).filter(Boolean)));
+    if (!unique.length) return [];
+    const results: any[] = [];
+    for (const u of unique) {
+      const q = query(col(), where('uid', '==', u));
+      const snap = await getDocs(q);
+      results.push(...snap.docs.map(d => ({ id: d.id, ...(d.data() as any) })));
+    }
+    return results;
+  } catch (error) {
+    console.error('Error listando usuarios por UID:', error);
+    return [];
   }
 }

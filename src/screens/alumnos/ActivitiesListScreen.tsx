@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, TextInput, Platform, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, TextInput, Platform, Linking, Modal } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { darkColors } from '../../theme/colors';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -11,6 +11,8 @@ import { auth } from '../../config/firebase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { getDownloadURL, ref } from 'firebase/storage';
 import { storage } from '../../config/firebase';
+import { createSubmission, updateSubmission } from '../../services/submissions';
+import { uploadBytes, getDownloadURL as getURL } from 'firebase/storage';
 
 type Props = NativeStackScreenProps<any>;
 
@@ -24,7 +26,7 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
   const [filter, setFilter] = useState<'Todas' | 'Pendientes' | 'Completadas' | 'Vencidas'>('Todas');
   const courseTitleById = useMemo(() => Object.fromEntries(courses.map(c => [c.id!, c.title])), [courses]);
   // Filtro manual por clase cuando vienes desde la pestaña Actividades
-  const [courseFilterId, setCourseFilterId] = useState<string | undefined>((route as any)?.params?.filterCourseId);
+  const [courseFilterId, setCourseFilterId] = useState<string | undefined | null>((route as any)?.params?.filterCourseId);
   // Controla el despliegue del filtrador adicional de clases
   const [showClassFilter, setShowClassFilter] = useState(false);
   // Los alumnos no generan códigos; solo el profesor puede hacerlo.
@@ -44,6 +46,14 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
     prioLow: darkColors.success,
   } as const;
   const HEX = T;
+  // Estado para entrega de actividad (modal)
+  const [submitOpen, setSubmitOpen] = useState(false);
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+  const [submitTitle, setSubmitTitle] = useState('');
+  const [submitDesc, setSubmitDesc] = useState('');
+  const [pendingFiles, setPendingFiles] = useState<any[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const load = async () => {
     setError(null);
@@ -86,10 +96,11 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
               atts.map(async (a: any) => {
                 if (typeof a?.url === 'string' && a.url.includes('/o?name=')) {
                   try {
+                    if (!storage) return a; // storage no disponible
                     const urlObj = new URL(a.url);
                     const rawName = urlObj.searchParams.get('name') || '';
                     const path = decodeURIComponent(rawName);
-                    const r = ref(storage, path);
+                    const r = ref(storage!, path);
                     const newUrl = await getDownloadURL(r);
                     return { ...a, url: newUrl };
                   } catch {
@@ -149,7 +160,7 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
     setCourseFilterId(filterCourseId);
   }, [filterCourseId]);
   const filterWorkshopId = (route as any)?.params?.filterWorkshopId as string | undefined;
-  const effectiveCourseId = courseFilterId || filterCourseId;
+  const effectiveCourseId = (courseFilterId === null) ? undefined : (courseFilterId || filterCourseId);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return items.filter((item) => {
@@ -203,10 +214,11 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
     const u = att?.url || '';
     try {
       if (u.includes('/o?name=')) {
+        if (!storage) return undefined;
         const urlObj = new URL(u);
         const rawName = urlObj.searchParams.get('name') || '';
         const path = decodeURIComponent(rawName);
-        const r = ref(storage, path);
+        const r = ref(storage!, path);
         const fixed = await getDownloadURL(r);
         return fixed;
       }
@@ -214,6 +226,59 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
     } catch {
       // Si no podemos convertir el URL legacy, devolvemos undefined para evitar solicitar `o?name=`
       return undefined;
+    }
+  };
+
+  const openSubmit = (activity: Activity) => {
+    setSelectedActivity(activity);
+    setSubmitTitle('');
+    setSubmitDesc('');
+    setPendingFiles([]);
+    setSubmitError(null);
+    setSubmitOpen(true);
+  };
+
+  const uploadSubmissionFiles = async (submissionId: string) => {
+    if (!storage || !pendingFiles.length) return [] as { name: string; url: string; contentType?: string; size?: number }[];
+    const uploaded: { name: string; url: string; contentType?: string; size?: number }[] = [];
+    for (const f of pendingFiles) {
+      try {
+        const name: string = String((f?.name ?? `archivo-${Date.now()}`)).replace(/[^A-Za-z0-9._-]/g, '_');
+        const path = `submissions/${submissionId}/${Date.now()}-${name}`;
+        const r = ref(storage, path);
+        const bytes = f instanceof Blob ? f : (f?.blob ?? undefined);
+        const toUpload: Blob = bytes || new Blob([await (f?.arrayBuffer?.() ?? Promise.resolve(new ArrayBuffer(0)))]);
+        await uploadBytes(r, toUpload, { contentType: f?.type });
+        const url = await getURL(r);
+        uploaded.push({ name, url, contentType: f?.type, size: f?.size });
+      } catch (e) {
+        // Continúa en caso de error individual
+      }
+    }
+    return uploaded;
+  };
+
+  const onSubmitActivity = async () => {
+    if (!selectedActivity?.id) return;
+    setSubmitError(null);
+    setSubmitting(true);
+    try {
+      const activityId = selectedActivity.id!;
+      const courseId = effectiveCourseId || selectedActivity.courseId || (selectedActivity.courseIds || [])[0] || '';
+      const submissionId = await createSubmission({ activityId, courseId, title: submitTitle.trim() || '', description: submitDesc.trim() || '' });
+      if (pendingFiles.length) {
+        const uploaded = await uploadSubmissionFiles(submissionId);
+        if (uploaded.length) {
+          await updateSubmission(submissionId, { attachments: uploaded as any });
+        }
+      }
+      setSubmitOpen(false);
+      setSelectedActivity(null);
+      Alert.alert('Entrega realizada', 'Tu entrega fue registrada correctamente.');
+    } catch (e: any) {
+      setSubmitError(e?.message ?? 'Error al entregar actividad');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -279,11 +344,9 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
           );
         })}
         {/* Botón para desplegar el filtrador de clases */}
-        {!filterCourseId && (
-          <TouchableOpacity onPress={() => setShowClassFilter(v => !v)} style={[styles.chip, showClassFilter && styles.chipActive, { borderColor: T.accent }]} activeOpacity={0.8}>
-            <Text style={[styles.chipText, showClassFilter && styles.chipTextActive, { color: showClassFilter ? T.bg : T.text }]}>Clases</Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity onPress={() => setShowClassFilter(v => !v)} style={[styles.chip, showClassFilter && styles.chipActive, { borderColor: T.accent }]} activeOpacity={0.8}>
+          <Text style={[styles.chipText, showClassFilter && styles.chipTextActive, { color: showClassFilter ? T.bg : T.text }]}>Clases</Text>
+        </TouchableOpacity>
         {/* Resto de estados */}
         {(['Pendientes', 'Completadas', 'Vencidas'] as const).map((f) => {
           const active = filter === f;
@@ -296,7 +359,7 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
       </View>
 
       {/* Popup de clases: aparece debajo del filtrador */}
-      {!filterCourseId && showClassFilter && (
+      {showClassFilter && (
         <View style={[styles.menu, { borderColor: T.border, backgroundColor: Platform.OS === 'web' ? 'rgba(42,42,58,0.7)' : T.card }]}> 
           {([
             { id: undefined, title: 'Todas las clases' },
@@ -304,7 +367,7 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
           ]).map((item, index, arr) => (
             <TouchableOpacity
               key={(item.id ?? 'all') + ''}
-              onPress={() => { setCourseFilterId(item.id); setShowClassFilter(false); }}
+              onPress={() => { setCourseFilterId(item.id ?? null); setShowClassFilter(false); }}
               style={[
                 styles.menuItem,
                 { borderBottomWidth: index === arr.length - 1 ? 0 : 1, borderBottomColor: T.border }
@@ -338,9 +401,7 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
                   {item.completed && <MaterialCommunityIcons name="check" size={14} color={HEX.text} />}
                 </TouchableOpacity>
                 <Text style={[styles.cardTitle, { color: HEX.text }]}>{item.title}</Text>
-                <TouchableOpacity onPress={() => navigation.navigate('ActivityCreate', { editItem: item })}>
-                  <MaterialCommunityIcons name="chevron-right" size={18} color={T.accent} />
-                </TouchableOpacity>
+                {/* Flecha de edición eliminada para alumnos */}
               </View>
 
               {!!item.description && (
@@ -422,10 +483,97 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
                 </View>
               )}
 
+              {/* Acción: Entregar actividad */}
+              <View style={styles.badgesRow}>
+                <TouchableOpacity
+                  style={[styles.badge, { backgroundColor: 'transparent', borderColor: T.accent }]} 
+                  onPress={() => openSubmit(item)}
+                  activeOpacity={0.85}
+                >
+                  <MaterialCommunityIcons name="upload" size={14} color={T.accent} />
+                  <Text style={[styles.badgeText, { color: T.accent }]}>Entregar actividad</Text>
+                </TouchableOpacity>
+              </View>
+
             </View>
           </View>
         );
       })}
+
+      {/* Modal de entrega */}
+      <Modal visible={submitOpen} transparent animationType="fade" onRequestClose={() => setSubmitOpen(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <View style={{ width: '100%', maxWidth: 560, borderRadius: 12, borderWidth: 1, borderColor: T.border, backgroundColor: Platform.OS === 'web' ? 'rgba(42,42,58,0.85)' : T.card, padding: 16, ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' } as any) : {}) }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <MaterialCommunityIcons name="clipboard-check" size={18} color={T.accent} />
+              <Text style={{ flex: 1, fontSize: 16, fontWeight: '700', color: HEX.text, marginLeft: 8 }}>Entregar actividad</Text>
+              <TouchableOpacity onPress={() => setSubmitOpen(false)}>
+                <MaterialCommunityIcons name="close" size={18} color={HEX.text} />
+              </TouchableOpacity>
+            </View>
+
+            {!!submitError && <Text style={{ color: HEX.prioHigh, marginBottom: 8 }}>{submitError}</Text>}
+
+            <Text style={{ fontSize: 12, fontWeight: '700', color: HEX.text, marginBottom: 6 }}>Título (opcional)</Text>
+            <TextInput
+              value={submitTitle}
+              onChangeText={setSubmitTitle}
+              placeholder="Agrega un título"
+              placeholderTextColor={HEX.textMuted}
+              style={{ borderWidth: 1, borderColor: T.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, color: HEX.text, backgroundColor: Platform.OS === 'web' ? 'rgba(42,42,58,0.6)' : T.card, marginBottom: 10 }}
+            />
+
+            <Text style={{ fontSize: 12, fontWeight: '700', color: HEX.text, marginBottom: 6 }}>Descripción (opcional)</Text>
+            <TextInput
+              value={submitDesc}
+              onChangeText={setSubmitDesc}
+              placeholder="Agrega una descripción"
+              placeholderTextColor={HEX.textMuted}
+              multiline
+              style={{ borderWidth: 1, borderColor: T.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, height: 100, color: HEX.text, backgroundColor: Platform.OS === 'web' ? 'rgba(42,42,58,0.6)' : T.card, marginBottom: 12 }}
+            />
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
+              <TouchableOpacity
+                onPress={() => {
+                  if (Platform.OS === 'web') {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.multiple = false;
+                    input.onchange = (e: any) => {
+                      const file = Array.from(e?.target?.files || [])[0];
+                      if (file) setPendingFiles([file]);
+                    };
+                    input.click();
+                  } else {
+                    Alert.alert('Adjuntar archivo', 'Adjuntar archivos está disponible en la versión web. En móvil puedes entregar sin archivo.');
+                  }
+                }}
+                style={[styles.badge, { backgroundColor: 'transparent', borderColor: T.accent }]}
+                activeOpacity={0.85}
+              >
+                <MaterialCommunityIcons name="file-plus" size={14} color={T.accent} />
+                <Text style={[styles.badgeText, { color: T.accent }]}>Agregar archivo</Text>
+              </TouchableOpacity>
+              {!!pendingFiles.length && (
+                <View style={[styles.badge, { marginLeft: 8, backgroundColor: 'rgba(96,165,250,0.12)', borderColor: T.accent }] }>
+                  <MaterialCommunityIcons name="paperclip" size={14} color={HEX.text} />
+                  <Text style={[styles.badgeText, { color: HEX.text }]}>Seleccionado: {String(pendingFiles[0]?.name || '1 archivo')}</Text>
+                </View>
+              )}
+            </View>
+
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
+              <TouchableOpacity onPress={() => setSubmitOpen(false)} style={{ paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: T.border }}>
+                <Text style={{ color: HEX.text }}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={onSubmitActivity} disabled={submitting} style={{ paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10, backgroundColor: T.accent }}>
+                {submitting ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '700' }}>Entregar</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

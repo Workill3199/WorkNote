@@ -1,3 +1,6 @@
+// Inicialización de Firebase para la app, resolviendo configuración desde diferentes fuentes.
+// Prioridad: Expo manifest -> EXPO_PUBLIC_* -> FIREBASE_* (legado).
+// Incluye normalización de bucket y persistencia en web.
 import Constants from 'expo-constants';
 import { initializeApp, getApp, getApps, FirebaseApp } from 'firebase/app';
 import { initializeFirestore, Firestore, setLogLevel } from 'firebase/firestore';
@@ -36,6 +39,7 @@ const legacyEnv: FirebaseExtra = {
   appId: process.env.FIREBASE_APP_ID,
 };
 
+// Normaliza dominios de bucket hacia el formato aceptado por Firebase Storage.
 const normalizeBucket = (b?: string) => {
   if (!b) return b;
   // Algunas variables vienen con dominio "firebasestorage.app"; el bucket válido es "<project>.appspot.com"
@@ -51,6 +55,7 @@ const firebaseExtra: FirebaseExtra = {
   appId: expoExtra?.appId || publicEnv.appId || legacyEnv.appId,
 };
 
+// Verifica si hay configuración mínima para inicializar Firebase.
 const hasConfig = Boolean(firebaseExtra && firebaseExtra.apiKey);
 
 let app: FirebaseApp | undefined;
@@ -58,6 +63,7 @@ let auth: Auth | undefined;
 let db: Firestore | undefined;
 let storage: FirebaseStorage | undefined;
 
+// Inicializa servicios si hay config; si no, advierte por consola.
 if (!hasConfig) {
   console.warn('Firebase config no está definido. Completa las variables en .env.');
 } else {
@@ -76,6 +82,7 @@ if (!hasConfig) {
     auth = getAuth(app);
   }
 
+  // Firestore: fuerza long polling en entornos no-web para mejorar compatibilidad de red.
   db = initializeFirestore(app, {
     experimentalForceLongPolling: Platform.OS !== 'web',
     ...(Platform.OS === 'web' ? { experimentalAutoDetectLongPolling: true } : {}),
@@ -93,6 +100,7 @@ if (!hasConfig) {
       }
     })();
   }
+  // Storage: usa el bucket normalizado si está definido.
   storage = getStorage(app, firebaseExtra.storageBucket ? `gs://${firebaseExtra.storageBucket}` : undefined as any);
 }
 

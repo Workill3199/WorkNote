@@ -1,3 +1,5 @@
+// Pantalla de selección de rol (raíz).
+// Permite elegir entre Profesor o Alumno y navega al registro.
 import React from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
 import { useTheme } from '@react-navigation/native';
@@ -9,7 +11,7 @@ import NeonButton from '../components/NeonButton';
 type Props = NativeStackScreenProps<any>;
 
 export default function RegisterRoleScreen({ navigation }: Props) {
-  const { colors } = useTheme();
+  const { colors } = useTheme(); // colores del tema
   const palette = colors.background === darkColors.background ? darkColors : lightColors;
 
   return (
@@ -25,6 +27,7 @@ export default function RegisterRoleScreen({ navigation }: Props) {
       <Text style={[styles.subtitle, { color: colors.text }]}>Elige tu rol para continuar</Text>
 
       <View style={{ gap: 12, marginTop: 8 }}>
+        {/* Acción: ir a registro como profesor */}
         <NeonButton
           title="Registrarse como Profesor"
           onPress={async () => { navigation.navigate('Register', { role: 'profesor' }); }}
@@ -32,6 +35,7 @@ export default function RegisterRoleScreen({ navigation }: Props) {
           style={styles.button}
           textStyle={styles.buttonText}
         />
+        {/* Acción: ir a registro como alumno */}
         <NeonButton
           title="Registrarse como Alumno"
           onPress={async () => { navigation.navigate('Register', { role: 'alumno' }); }}
@@ -44,6 +48,7 @@ export default function RegisterRoleScreen({ navigation }: Props) {
   );
 }
 
+// Estilos base consistentes con el tema
 const styles = StyleSheet.create({
   screen: { flex: 1, paddingHorizontal: 16, justifyContent: 'center' },
   logoWrap: { alignItems: 'center', marginBottom: 12 },

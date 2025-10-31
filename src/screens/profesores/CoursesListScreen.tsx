@@ -1,59 +1,65 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, TextInput, Platform } from 'react-native';
-import { useTheme } from '@react-navigation/native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { listCourses, Course, deleteCourse, joinCourseByShareCode, ensureCourseShareCode } from '../../services/courses';
-import { auth } from '../../config/firebase';
-import { listStudentsByCourse } from '../../services/students';
-import ManagementCard from '../../components/ManagementCard';
-import CourseListItem from '../../components/CourseListItem';
-import { darkColors } from '../../theme/colors';
-import { fonts } from '../../theme/typography';
+// Pantalla de listado de cursos para profesores.
+// Permite buscar, unirse por código, crear, editar y eliminar cursos.
+import React, { useEffect, useMemo, useState } from 'react'; // React y hooks básicos
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, TextInput, Platform } from 'react-native'; // Componentes RN
+import { useTheme } from '@react-navigation/native'; // Acceso a colores del tema
+import { NativeStackScreenProps } from '@react-navigation/native-stack'; // Tipos de navegación
+import { listCourses, Course, deleteCourse, joinCourseByShareCode, ensureCourseShareCode } from '../../services/courses'; // Servicios de cursos
+import { auth } from '../../config/firebase'; // Autenticación (para verificar dueño de curso)
+import { listStudentsByCourse } from '../../services/students'; // Servicio para contar estudiantes por curso
+import ManagementCard from '../../components/ManagementCard'; // Tarjeta para móvil
+import CourseListItem from '../../components/CourseListItem'; // Item para grid web
+import { darkColors } from '../../theme/colors'; // Paleta fija
+import { fonts } from '../../theme/typography'; // Tipografías
 
+// Tipos de props de navegación
 type Props = NativeStackScreenProps<any>;
 
 export default function CoursesListScreen({ navigation }: Props) {
-  const { colors } = useTheme();
-  const [items, setItems] = useState<Course[]>([]);
-  const [studentCounts, setStudentCounts] = useState<Record<string, number>>({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [query, setQuery] = useState('');
-  const [joinOpen, setJoinOpen] = useState(false);
-  const [joinCode, setJoinCode] = useState('');
-  const [joining, setJoining] = useState(false);
+  const { colors } = useTheme(); // Colores del tema
+  const [items, setItems] = useState<Course[]>([]); // Lista de cursos
+  const [studentCounts, setStudentCounts] = useState<Record<string, number>>({}); // Conteos por curso
+  const [loading, setLoading] = useState(true); // Indicador de carga
+  const [error, setError] = useState<string | null>(null); // Mensaje de error
+  const [query, setQuery] = useState(''); // Texto de búsqueda
+  const [joinOpen, setJoinOpen] = useState(false); // UI: fila para unirse por código
+  const [joinCode, setJoinCode] = useState(''); // Código ingresado
+  const [joining, setJoining] = useState(false); // Indicador de operación de unión
 
+  // Carga cursos y calcula cantidad de estudiantes por curso
   const load = async () => {
     setError(null);
     setLoading(true);
     try {
-      const data = await listCourses();
+      const data = await listCourses(); // Obtiene cursos
       setItems(data);
-      const counts: Record<string, number> = {};
+      const counts: Record<string, number> = {}; // Mapa de conteos
       await Promise.all(
         data.map(async (c) => {
           try {
-            if (!c.id) return;
-            const arr = await listStudentsByCourse(c.id);
-            counts[c.id] = arr.length;
+            if (!c.id) return; // Ignora sin ID
+            const arr = await listStudentsByCourse(c.id); // Lista estudiantes del curso
+            counts[c.id] = arr.length; // Guarda conteo
           } catch {
-            if (c.id) counts[c.id] = 0;
+            if (c.id) counts[c.id] = 0; // Fallback ante error
           }
         })
       );
-      setStudentCounts(counts);
+      setStudentCounts(counts); // Actualiza mapa de conteos
     } catch (e: any) {
-      setError(e?.message ?? 'Error al cargar cursos');
+      setError(e?.message ?? 'Error al cargar cursos'); // Muestra error
     } finally {
       setLoading(false);
     }
   };
 
+  // Recarga cursos cada vez que la pantalla gana foco
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', load);
     return unsubscribe;
   }, [navigation]);
 
+  // Elimina un curso y recarga lista
   const onDelete = async (id?: string) => {
     if (!id) return;
     Alert.alert('Eliminar curso', '¿Seguro que deseas eliminarlo?', [
@@ -62,6 +68,7 @@ export default function CoursesListScreen({ navigation }: Props) {
     ]);
   };
 
+  // Filtra cursos por texto (título, aula u horario)
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return items.filter((c) => {
@@ -162,7 +169,7 @@ export default function CoursesListScreen({ navigation }: Props) {
       {!!error && <Text style={[styles.error, { color: '#d32f2f' }]}>{error}</Text>}
 
       {!loading && filtered.length === 0 && (
-        <Text style={[styles.empty, { color: colors.mutedText }]}>No hay cursos aún. Crea el primero.</Text>
+        <Text style={[styles.empty, { color: (colors as any).mutedText || colors.text }]}>No hay cursos aún. Crea el primero.</Text>
       )}
       {/* Grid en web, lista en móvil (mantiene acciones) */}
       {!loading && (
@@ -212,27 +219,28 @@ export default function CoursesListScreen({ navigation }: Props) {
   );
 }
 
+// Estilos visuales del listado de cursos
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 8, borderBottomWidth: 1 },
-  title: { fontSize: 18, fontFamily: fonts.bold },
-  addBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
-  addText: { color: '#fff', fontWeight: '700' },
-  error: { marginTop: 8, textAlign: 'center' },
-  empty: { marginTop: 12, textAlign: 'center' },
-  row: { borderWidth: 1, borderRadius: 10, padding: 12, flexDirection: 'row', alignItems: 'center', marginTop: 8 },
-  joinRow: { marginTop: 12, marginBottom: 6 },
-  joinBox: { borderWidth: 1, borderColor: darkColors.border, borderRadius: 12, padding: 8, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  joinInput: { flex: 1, color: '#fff', fontFamily: fonts.regular, fontSize: 14 },
-  joinBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
-  searchRow: { marginTop: 12, marginBottom: 6 },
-  searchBox: { borderWidth: 1, borderColor: darkColors.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 },
-  searchInput: { color: '#fff', fontFamily: fonts.regular, fontSize: 14 },
+  container: { flex: 1, padding: 16 }, // Contenedor principal
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 8, borderBottomWidth: 1 }, // Encabezado
+  title: { fontSize: 18, fontFamily: fonts.bold }, // Título
+  addBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 }, // Botón de acción
+  addText: { color: '#fff', fontWeight: '700' }, // Texto de botón
+  error: { marginTop: 8, textAlign: 'center' }, // Mensaje de error
+  empty: { marginTop: 12, textAlign: 'center' }, // Mensaje de vacío
+  row: { borderWidth: 1, borderRadius: 10, padding: 12, flexDirection: 'row', alignItems: 'center', marginTop: 8 }, // Fila genérica
+  joinRow: { marginTop: 12, marginBottom: 6 }, // Fila de unión por código
+  joinBox: { borderWidth: 1, borderColor: darkColors.border, borderRadius: 12, padding: 8, flexDirection: 'row', alignItems: 'center', gap: 8 }, // Caja de unión
+  joinInput: { flex: 1, color: '#fff', fontFamily: fonts.regular, fontSize: 14 }, // Input de código
+  joinBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 }, // Botón de unión
+  searchRow: { marginTop: 12, marginBottom: 6 }, // Fila de búsqueda
+  searchBox: { borderWidth: 1, borderColor: darkColors.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 }, // Caja de búsqueda
+  searchInput: { color: '#fff', fontFamily: fonts.regular, fontSize: 14 }, // Input de búsqueda
 
   // Diseño: chips y grid
   // filtros de semestre removidos
-  grid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 },
-  gridItem: { width: '50%', paddingHorizontal: 4 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 }, // Grid web
+  gridItem: { width: '50%', paddingHorizontal: 4 }, // Item half-width
 });
   const viewShareCode = async (courseId?: string) => {
     if (!courseId) return;

@@ -1,81 +1,89 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Platform, Alert, ScrollView } from 'react-native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { storage } from '../../config/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { useTheme } from '@react-navigation/native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { createActivity, updateActivity, deleteActivity, Activity } from '../../services/activities';
-import { listCourses, Course } from '../../services/courses';
-import { darkColors } from '../../theme/colors';
-import { fonts } from '../../theme/typography';
-import { SafeAreaView } from 'react-native-safe-area-context';
-// Adjuntos removidos: no usamos Storage aquí
+// Pantalla para crear/editar actividades.
+// Permite cargar título, descripción, categoría, fecha de vencimiento, prioridad, asignación a clases y adjuntar archivos (web).
+import React, { useEffect, useState } from 'react'; // React y hooks para estado/efectos
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Platform, Alert, ScrollView } from 'react-native'; // Componentes de UI RN
+import { MaterialCommunityIcons } from '@expo/vector-icons'; // Iconos
+import { storage } from '../../config/firebase'; // Referencia de Firebase Storage inicializada en config
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'; // Funciones de Storage: referencia, subir, obtener URL
+import { useTheme } from '@react-navigation/native'; // Hook para colores del tema actual
+import { NativeStackScreenProps } from '@react-navigation/native-stack'; // Tipado de navegación
+import { createActivity, updateActivity, deleteActivity, Activity } from '../../services/activities'; // Servicios de actividades
+import { listCourses, Course } from '../../services/courses'; // Servicios de cursos (para asignar actividad a cursos)
+import { darkColors } from '../../theme/colors'; // Paleta fija de colores oscuros
+import { fonts } from '../../theme/typography'; // Tipografías del proyecto
+import { SafeAreaView } from 'react-native-safe-area-context'; // Asegura el área segura en iOS/Android
+// Nota: Adjuntos funcionales en web; en móvil se muestra aviso
 
+// Props del screen según navegación (stack nativo)
 type Props = NativeStackScreenProps<any>;
 
 export default function ActivityCreateScreen({ navigation, route }: Props) {
-  const { colors } = useTheme();
-  const palette = darkColors
-  const editItem = (route as any)?.params?.editItem as Activity | undefined;
-  const [title, setTitle] = useState(editItem?.title || '');
-  const [description, setDescription] = useState(editItem?.description || '');
-  const [dueDate, setDueDate] = useState(editItem?.dueDate ? new Date(editItem.dueDate).toISOString().slice(0,10) : '');
-  const [dateFocused, setDateFocused] = useState(false);
-  const [category, setCategory] = useState(editItem?.category || '');
-  const [courseId, setCourseId] = useState(editItem?.courseId || '');
-  const [courseIds, setCourseIds] = useState<string[]>(Array.isArray(editItem?.courseIds) ? (editItem!.courseIds as string[]) : []);
-  const [workshopId, setWorkshopId] = useState(editItem?.workshopId || '');
-  const [priority, setPriority] = useState<'alta' | 'media' | 'baja'>(editItem?.priority || 'media');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [pendingFiles, setPendingFiles] = useState<any[]>([]); // Web: File[]
-  // Adjuntos removidos
+  const { colors } = useTheme(); // Colores del tema
+  const palette = darkColors; // Alias de paleta oscura
+  const editItem = (route as any)?.params?.editItem as Activity | undefined; // Item a editar si viene en route
+  // Estados controlados para cada campo del formulario
+  const [title, setTitle] = useState(editItem?.title || ''); // Título de la actividad
+  const [description, setDescription] = useState(editItem?.description || ''); // Descripción
+  const [dueDate, setDueDate] = useState(editItem?.dueDate ? new Date(editItem.dueDate).toISOString().slice(0,10) : ''); // Fecha (YYYY-MM-DD)
+  const [dateFocused, setDateFocused] = useState(false); // UI: foco del input date en web
+  const [category, setCategory] = useState(editItem?.category || ''); // Categoría
+  const [courseId, setCourseId] = useState(editItem?.courseId || ''); // Curso simple (cuando no se usa múltiple)
+  const [courseIds, setCourseIds] = useState<string[]>(Array.isArray(editItem?.courseIds) ? (editItem!.courseIds as string[]) : []); // Cursos múltiples
+  const [workshopId, setWorkshopId] = useState(editItem?.workshopId || ''); // Taller opcional
+  const [priority, setPriority] = useState<'alta' | 'media' | 'baja'>(editItem?.priority || 'media'); // Prioridad
+  const [loading, setLoading] = useState(false); // Indicador de operación en curso
+  const [error, setError] = useState<string | null>(null); // Error de operación
+  const [courses, setCourses] = useState<Course[]>([]); // Lista de cursos para seleccionar
+  const [pendingFiles, setPendingFiles] = useState<any[]>([]); // Archivos pendientes por subir (web: File[])
+  // Nota: en móvil no se adjunta; se muestra aviso
 
   useEffect(() => {
-    // Cargar lista de clases (cursos) para el selector
+    // Al montar, carga lista de cursos para permitir asignación
     listCourses().then(setCourses).catch(() => setCourses([]));
   }, []);
 
+  // Sube archivos adjuntos a Firebase Storage y devuelve metadatos con URL
   const uploadAttachments = async (activityId: string) => {
-    if (!storage || !pendingFiles.length) return [] as { name: string; url: string; contentType?: string; size?: number }[];
-    const uploaded: { name: string; url: string; contentType?: string; size?: number }[] = [];
+    if (!storage || !pendingFiles.length) return [] as { name: string; url: string; contentType?: string; size?: number }[]; // Si no hay Storage inicializado o archivos, no hace nada
+    const uploaded: { name: string; url: string; contentType?: string; size?: number }[] = []; // Array de adjuntos subidos
     for (const f of pendingFiles) {
       try {
-        const name: string = String((f?.name ?? `archivo-${Date.now()}`)).replace(/[^A-Za-z0-9._-]/g, '_');
-        const path = `activities/${activityId}/${Date.now()}-${name}`;
-        const r = ref(storage, path);
-        const bytes = f instanceof Blob ? f : (f?.blob ?? undefined);
-        const toUpload: Blob = bytes || new Blob([await (f?.arrayBuffer?.() ?? Promise.resolve(new ArrayBuffer(0)))]);
-        await uploadBytes(r, toUpload, { contentType: f?.type });
-        const url = await getDownloadURL(r);
-        uploaded.push({ name, url, contentType: f?.type, size: f?.size });
+        const name: string = String((f?.name ?? `archivo-${Date.now()}`)).replace(/[^A-Za-z0-9._-]/g, '_'); // Normaliza nombre
+        const path = `activities/${activityId}/${Date.now()}-${name}`; // Ruta en Storage
+        const r = ref(storage, path); // Referencia a Storage
+        const bytes = f instanceof Blob ? f : (f?.blob ?? undefined); // Obtiene blob si existe
+        const toUpload: Blob = bytes || new Blob([await (f?.arrayBuffer?.() ?? Promise.resolve(new ArrayBuffer(0)))]); // Construye blob si hace falta
+        await uploadBytes(r, toUpload, { contentType: f?.type }); // Sube el archivo
+        const url = await getDownloadURL(r); // Obtiene URL pública
+        uploaded.push({ name, url, contentType: f?.type, size: f?.size }); // Guarda metadatos
       } catch (e) {
-        // Ignorar fallo individual, continuar con los demás
+        // Ignora error de un archivo y continúa con el resto
       }
     }
-    return uploaded;
+    return uploaded; // Devuelve lista final
   };
 
+  // Guarda cambios (crear o actualizar actividad) y opcionalmente sube adjuntos
   const onSave = async () => {
-    setError(null);
-    if (!title.trim()) { setError('El título es obligatorio'); return; }
-    setLoading(true);
+    setError(null); // Limpia errores previos
+    if (!title.trim()) { setError('El título es obligatorio'); return; } // Valida título
+    setLoading(true); // Muestra spinner
     try {
-      const due = dueDate ? new Date(dueDate).toISOString() : undefined;
-      const normalizedCourseIds = Array.from(new Set(courseIds.filter(Boolean)));
-      const singleCourseId = (courseId || normalizedCourseIds[0] || '').trim();
+      const due = dueDate ? new Date(dueDate).toISOString() : undefined; // Normaliza fecha a ISO
+      const normalizedCourseIds = Array.from(new Set(courseIds.filter(Boolean))); // Deduplica cursos múltiples
+      const singleCourseId = (courseId || normalizedCourseIds[0] || '').trim(); // Selecciona curso simple si aplica
       if (editItem?.id) {
+        // Actualización de actividad existente
         await updateActivity(editItem.id, { title: title.trim(), description: description.trim(), dueDate: due, category: category.trim(), courseId: singleCourseId || undefined, courseIds: normalizedCourseIds, workshopId: workshopId.trim() || undefined, priority });
         // Subir adjuntos nuevos si se seleccionaron
         if (pendingFiles.length) {
           const newAtts = await uploadAttachments(editItem.id);
-          const prev = Array.isArray(editItem.attachments) ? editItem.attachments : [];
-          const merged = [...prev, ...newAtts];
+          const prev = Array.isArray(editItem.attachments) ? editItem.attachments : []; // Adjuntos previos
+          const merged = [...prev, ...newAtts]; // Combina previos con nuevos
           await updateActivity(editItem.id, { attachments: merged as any });
         }
       } else {
+        // Creación de nueva actividad
         const newId = await createActivity({ title: title.trim(), description: description.trim(), dueDate: due, category: category.trim(), courseId: singleCourseId || undefined, courseIds: normalizedCourseIds, workshopId: workshopId.trim() || undefined, priority });
         // Subir adjuntos si hay seleccionados
         if (pendingFiles.length) {
@@ -85,24 +93,26 @@ export default function ActivityCreateScreen({ navigation, route }: Props) {
           }
         }
       }
-      navigation.goBack();
+      navigation.goBack(); // Regresa a la pantalla anterior
     } catch (e: any) {
+      // Muestra mensaje de error genérico según operación
       setError(e?.message ?? (editItem?.id ? 'Error al actualizar actividad' : 'Error al crear actividad'));
     } finally {
-      setLoading(false);
+      setLoading(false); // Oculta spinner
     }
   };
 
+  // Elimina la actividad actual (si existe) con confirmación según plataforma
   const onDelete = async () => {
-    if (!editItem?.id) return;
+    if (!editItem?.id) return; // No hay nada que eliminar
     const performDelete = async () => {
       setLoading(true);
       setError(null);
       try {
-        await deleteActivity(editItem.id!);
-        navigation.goBack();
+        await deleteActivity(editItem.id!); // Llama servicio de borrado
+        navigation.goBack(); // Vuelve atrás
       } catch (e: any) {
-        setError(e?.message ?? 'Error al eliminar actividad');
+        setError(e?.message ?? 'Error al eliminar actividad'); // Muestra error
       } finally {
         setLoading(false);
       }
@@ -125,12 +135,17 @@ export default function ActivityCreateScreen({ navigation, route }: Props) {
   };
 
   return (
+  // Contenedor principal con área segura
   <SafeAreaView>
     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={true}>
     <View style={[styles.container, { backgroundColor: colors.background }] }>
+      {/* Título de la pantalla según modo */}
       <Text style={[styles.title, { color: colors.text }]}>{editItem?.id ? 'Editar Actividad' : 'Nueva Actividad'}</Text>
+      {/* Mensaje de error si existe */}
       {!!error && <Text style={styles.error}>{error}</Text>}
+      {/* Tarjeta del formulario */}
       <View style={[styles.formCard, { backgroundColor: colors.card, borderColor: colors.border }] }>
+        {/* Campo de título */}
         <Text style={[styles.label, { color: colors.text }]}>Título</Text>
         <TextInput
           style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
@@ -140,6 +155,7 @@ export default function ActivityCreateScreen({ navigation, route }: Props) {
           onChangeText={setTitle}
         />
 
+        {/* Campo de descripción */}
         <Text style={[styles.label, { color: colors.text }]}>Descripción</Text>
         <TextInput
           style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text, height: 100 }]}
@@ -150,6 +166,7 @@ export default function ActivityCreateScreen({ navigation, route }: Props) {
           multiline
         />
 
+        {/* Campo de categoría */}
         <Text style={[styles.label, { color: colors.text }]}>Categoría</Text>
         <TextInput
           style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
@@ -190,6 +207,7 @@ export default function ActivityCreateScreen({ navigation, route }: Props) {
           )}
         </View>
 
+        {/* Selector de fecha de vencimiento (web: input date nativo, móvil: texto plano) */}
         <Text style={[styles.label, { color: colors.text }]}>Fecha de vencimiento</Text>
         {Platform.OS === 'web' ? (
           <View
@@ -240,6 +258,7 @@ export default function ActivityCreateScreen({ navigation, route }: Props) {
           />
         )}
 
+        {/* Selector de prioridad (chips) */}
         <Text style={[styles.label, { color: colors.text }]}>Prioridad</Text>
         <View style={styles.filtersRow}>
           {([
@@ -261,6 +280,7 @@ export default function ActivityCreateScreen({ navigation, route }: Props) {
           })}
         </View>
 
+        {/* Selector de clases (múltiple) */}
         <Text style={[styles.label, { color: colors.text }]}>Asignar a clases</Text>
         <View style={styles.filtersRow}>
           {courses.map((c) => {
@@ -279,8 +299,10 @@ export default function ActivityCreateScreen({ navigation, route }: Props) {
             );
           })}
         </View>
+        {/* Ayuda sobre selección múltiple */}
         <Text style={[styles.hint, { color: colors.text }]}>Puedes seleccionar múltiples clases. Se guardarán asignadas a esta actividad.</Text>
 
+        {/* Campo taller opcional */}
         <Text style={[styles.label, { color: colors.text }]}>Taller (opcional)</Text>
         <TextInput
           style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
@@ -290,10 +312,12 @@ export default function ActivityCreateScreen({ navigation, route }: Props) {
           onChangeText={setWorkshopId}
         />
 
+        {/* Botón de guardado */}
         <TouchableOpacity style={[styles.button, { backgroundColor: colors.primary }]} onPress={onSave} disabled={loading}>
           {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{editItem?.id ? 'Actualizar' : 'Guardar'}</Text>}
         </TouchableOpacity>
         {editItem?.id && (
+          // Botón de eliminar en modo edición
           <TouchableOpacity style={[styles.button, { backgroundColor: darkColors.error }]} onPress={onDelete} disabled={loading}>
             {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Eliminar</Text>}
           </TouchableOpacity>
@@ -305,16 +329,17 @@ export default function ActivityCreateScreen({ navigation, route }: Props) {
   );
 }
 
+// Estilos del formulario y chips
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  title: { fontSize: 18, fontFamily: fonts.bold, marginBottom: 12 },
-  formCard: { borderWidth: 1, borderRadius: 12, padding: 12, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 6, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
-  label: { fontSize: 12, fontWeight: '700', marginBottom: 6 },
-  input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12, fontSize: 16 },
-  button: { paddingVertical: 12, borderRadius: 10, alignItems: 'center', marginTop: 4 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  error: { color: darkColors.error, marginBottom: 12, textAlign: 'center' },
-  filtersRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 as any, marginBottom: 8 },
+  container: { flex: 1, padding: 16 }, // Contenedor principal
+  title: { fontSize: 18, fontFamily: fonts.bold, marginBottom: 12 }, // Título pantalla
+  formCard: { borderWidth: 1, borderRadius: 12, padding: 12, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 6, shadowOffset: { width: 0, height: 4 }, elevation: 4 }, // Tarjeta del formulario
+  label: { fontSize: 12, fontWeight: '700', marginBottom: 6 }, // Etiquetas de campos
+  input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12, fontSize: 16 }, // Inputs
+  button: { paddingVertical: 12, borderRadius: 10, alignItems: 'center', marginTop: 4 }, // Botones
+  buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' }, // Texto de botón
+  error: { color: darkColors.error, marginBottom: 12, textAlign: 'center' }, // Mensaje de error
+  filtersRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 as any, marginBottom: 8 }, // Fila de chips
   chip: {
     borderWidth: 1,
     borderColor: darkColors.border,
@@ -326,13 +351,13 @@ const styles = StyleSheet.create({
     backgroundColor: Platform.OS === 'web' ? 'rgba(20,25,35,0.5)' : darkColors.card,
     ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' } as any) : {}),
   },
-  chipActive: { borderColor: 'rgba(110,120,255,0.5)', backgroundColor: 'rgba(110,120,255,0.10)' },
-  chipText: { color: darkColors.mutedText, fontSize: 12 },
-  chipTextActive: { color: darkColors.primary },
-  hint: { fontSize: 11, color: darkColors.mutedText, marginBottom: 12 },
+  chipActive: { borderColor: 'rgba(110,120,255,0.5)', backgroundColor: 'rgba(110,120,255,0.10)' }, // Chip activo
+  chipText: { color: darkColors.mutedText, fontSize: 12 }, // Texto de chip
+  chipTextActive: { color: darkColors.primary }, // Texto de chip activo
+  hint: { fontSize: 11, color: darkColors.mutedText, marginBottom: 12 }, // Texto de ayuda
   scrollContent: {
   padding: 20,
   gap: 20,
   paddingBottom: 100,
-  },
+  }, // Contenido del ScrollView
 });

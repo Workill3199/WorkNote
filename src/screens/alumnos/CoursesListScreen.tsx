@@ -159,7 +159,7 @@ export default function CoursesListScreen({ navigation }: Props) {
       {!!error && <Text style={[styles.error, { color: '#d32f2f' }]}>{error}</Text>}
 
       {!loading && filtered.length === 0 && (
-        <Text style={[styles.empty, { color: colors.mutedText }]}>No hay cursos aún. Crea el primero.</Text>
+        <Text style={[styles.empty, { color: (colors as any).mutedText || colors.text }]}>No hay cursos aún. Crea el primero.</Text>
       )}
       {/* Grid en web, lista en móvil (mantiene acciones) */}
       {!loading && (

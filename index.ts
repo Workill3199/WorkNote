@@ -1,3 +1,5 @@
+// Punto de entrada para registrar el componente raíz con Expo.
+// Asegura entorno correcto tanto en Expo Go como en builds nativas.
 import { registerRootComponent } from 'expo';
 
 import App from './App';

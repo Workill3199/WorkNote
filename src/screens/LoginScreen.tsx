@@ -1,3 +1,5 @@
+// Pantalla de inicio de sesión (raíz).
+// Valida email/contraseña, autentica con Firebase y redirige según rol.
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { useTheme } from '@react-navigation/native';
@@ -13,13 +15,14 @@ import { getUserRole } from '../services/users';
 type Props = NativeStackScreenProps<any>;
 
 export default function LoginScreen({ navigation }: Props) {
-  const { colors } = useTheme();
+  const { colors } = useTheme(); // colores del tema
   const palette = colors.background === darkColors.background ? darkColors : lightColors;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [secure, setSecure] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Maneja el flujo de login y navegación por rol
   const handleLogin = async () => {
     setError(null);
     if (!email || !password) {

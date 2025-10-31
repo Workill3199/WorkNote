@@ -1,3 +1,5 @@
+// Pantalla para crear/editar talleres (profesores).
+// Gestiona título, descripción, lugar y horario; persiste en Firestore.
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useTheme } from '@react-navigation/native';
@@ -8,7 +10,7 @@ import NeonButton from '../../components/NeonButton';
 type Props = NativeStackScreenProps<any>;
 
 export default function WorkshopCreateScreen({ navigation, route }: Props) {
-  const { colors } = useTheme();
+  const { colors } = useTheme(); // paleta de colores del tema
   const editItem = (route as any)?.params?.editItem as Workshop | undefined;
   const [title, setTitle] = useState(editItem?.title || '');
   const [description, setDescription] = useState(editItem?.description || '');
@@ -17,6 +19,7 @@ export default function WorkshopCreateScreen({ navigation, route }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Guarda: si existe id actualiza, si no crea nuevo documento
   const onSave = async () => {
     setError(null);
     if (!title.trim()) { setError('El título es obligatorio'); return; }
@@ -37,9 +40,11 @@ export default function WorkshopCreateScreen({ navigation, route }: Props) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }] }>
+      {/* Encabezado contextual según modo edición/creación */}
       <Text style={[styles.title, { color: colors.text }]}>{editItem?.id ? 'Editar Taller' : 'Nuevo Taller'}</Text>
       {!!error && <Text style={styles.error}>{error}</Text>}
       <View style={[styles.formCard, { backgroundColor: colors.card, borderColor: colors.border }] }>
+        {/* Campo: título del taller */}
         <Text style={[styles.label, { color: colors.text }]}>Título</Text>
         <TextInput
           style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
@@ -49,6 +54,7 @@ export default function WorkshopCreateScreen({ navigation, route }: Props) {
           onChangeText={setTitle}
         />
 
+        {/* Campo: descripción */}
         <Text style={[styles.label, { color: colors.text }]}>Descripción</Text>
         <TextInput
           style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text, height: 100 }]}
@@ -59,6 +65,7 @@ export default function WorkshopCreateScreen({ navigation, route }: Props) {
           multiline
         />
 
+        {/* Campo: lugar */}
         <Text style={[styles.label, { color: colors.text }]}>Lugar</Text>
         <TextInput
           style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
@@ -68,6 +75,7 @@ export default function WorkshopCreateScreen({ navigation, route }: Props) {
           onChangeText={setLocation}
         />
 
+        {/* Campo: horario */}
         <Text style={[styles.label, { color: colors.text }]}>Horario</Text>
         <TextInput
           style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
@@ -77,13 +85,14 @@ export default function WorkshopCreateScreen({ navigation, route }: Props) {
           onChangeText={setSchedule}
         />
 
-
+        {/* Acción de guardar/actualizar taller */}
         <NeonButton title={editItem?.id ? 'Actualizar' : 'Guardar'} onPress={onSave} colors={colors} loading={loading} style={styles.button} textStyle={styles.buttonText} />
       </View>
     </View>
   );
 }
 
+// Estilos base del formulario; respetan el tema activo
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16 },
   title: { fontSize: 18, fontWeight: '700', marginBottom: 12 },

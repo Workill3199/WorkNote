@@ -1,9 +1,11 @@
+// Pantalla de asistencia para profesores.
+// Permite marcar presentes/ausentes, guardar registros y consultar historial por fecha.
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform, Alert, ScrollView, Modal, TextInput } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Student, listStudentsByCourse } from '../../services/students';
-import { createActivity, listActivitiesByCourse, Activity } from '../../services/activities';
+import { createAttendanceRecord, listAttendanceRecords, AttendanceRecord } from '../../services/attendance';
 import { listCourses, Course } from '../../services/courses';
 import { darkColors } from '../../theme/colors';
 import NeonButton from '../../components/NeonButton';
@@ -12,25 +14,26 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 type Props = NativeStackScreenProps<any>;
 
 export default function AttendanceScreen({ navigation, route }: Props) {
-  const { colors } = useTheme();
-  const courseId = (route as any)?.params?.filterCourseId as string | undefined;
-  const [students, setStudents] = useState<Student[]>([]);
-  const [present, setPresent] = useState<Record<string, boolean>>({});
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [historyDate, setHistoryDate] = useState<string>('');
-  const [historyInput, setHistoryInput] = useState<string>('');
-  const [historyItems, setHistoryItems] = useState<Activity[]>([]);
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [selectedHistory, setSelectedHistory] = useState<Activity | null>(null);
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [calYear, setCalYear] = useState<number>(new Date().getFullYear());
+  const { colors } = useTheme(); // Colores del tema
+  const courseId = (route as any)?.params?.filterCourseId as string | undefined; // Curso filtrado
+  const [students, setStudents] = useState<Student[]>([]); // Lista de estudiantes
+  const [present, setPresent] = useState<Record<string, boolean>>({}); // Mapa id->presente
+  const [loading, setLoading] = useState(true); // Cargando estudiantes
+  const [saving, setSaving] = useState(false); // Guardando asistencia
+  const [error, setError] = useState<string | null>(null); // Mensaje de error
+  const [courses, setCourses] = useState<Course[]>([]); // Cursos (para obtener nombre)
+  const [historyOpen, setHistoryOpen] = useState(false); // Modal selección fecha
+  const [historyDate, setHistoryDate] = useState<string>(''); // Fecha cargada
+  const [historyInput, setHistoryInput] = useState<string>(''); // Input YYYY-MM-DD
+  const [historyItems, setHistoryItems] = useState<AttendanceRecord[]>([]); // Historial para la fecha
+  const [detailOpen, setDetailOpen] = useState(false); // Modal detalle
+  const [selectedHistory, setSelectedHistory] = useState<AttendanceRecord | null>(null); // Ítem seleccionado
+  const [historyLoading, setHistoryLoading] = useState(false); // Indicador de carga de historial
+  const [calYear, setCalYear] = useState<number>(new Date().getFullYear()); // Año calendario móvil
   const [calMonth, setCalMonth] = useState<number>(new Date().getMonth()); // 0-11
-  const webDateRef = useRef<any>(null);
+  const webDateRef = useRef<any>(null); // Referencia input web
 
+  // Carga lista de cursos (para mostrar nombre del curso)
   useEffect(() => {
     listCourses().then(setCourses).catch(() => setCourses([]));
   }, []);
@@ -41,6 +44,7 @@ export default function AttendanceScreen({ navigation, route }: Props) {
     return c?.title ?? '';
   }, [courses, courseId]);
 
+  // Carga estudiantes y preselecciona todos como presentes
   const load = async () => {
     if (!courseId) {
       setError('Falta el identificador de la clase');
@@ -67,6 +71,7 @@ export default function AttendanceScreen({ navigation, route }: Props) {
   }, [courseId]);
 
   // Historial: util y carga por fecha
+  // Utilidad: formatea fecha a YYYY-MM-DD
   const toYMD = (d: Date) => {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -74,22 +79,16 @@ export default function AttendanceScreen({ navigation, route }: Props) {
     return `${y}-${m}-${dd}`;
   };
 
+  // Carga registros de asistencia del curso, filtrando por fecha
   const loadHistory = async (ymd: string) => {
     if (!courseId) return;
     setHistoryLoading(true);
     try {
-      const items = await listActivitiesByCourse(courseId);
+      const items = await listAttendanceRecords(courseId);
       const filtered = items.filter(it => {
-        if ((it.category || '').toLowerCase() !== 'asistencia') return false;
-        const ts: any = (it as any).createdAt;
-        let d: Date | null = null;
-        if (ts?.toDate) d = ts.toDate();
-        else if (typeof ts === 'string') d = new Date(ts);
-        else if (typeof ts === 'number') d = new Date(ts);
-        else if (ts instanceof Date) d = ts;
-        if (!d) return false;
-        const itemYmd = toYMD(new Date(d.getFullYear(), d.getMonth(), d.getDate()));
-        return itemYmd === ymd;
+        // Filtrar por fecha específica si se proporciona
+        if (ymd && it.date !== ymd) return false;
+        return true;
       });
       setHistoryItems(filtered);
       setHistoryDate(ymd);
@@ -101,44 +100,36 @@ export default function AttendanceScreen({ navigation, route }: Props) {
     }
   };
 
-  const parseAbsentNames = (desc?: string): string[] => {
-    if (!desc) return [];
-    const idx = desc.toLowerCase().indexOf('ausentes:');
-    if (idx === -1) return [];
-    const tail = desc.substring(idx + 'ausentes:'.length).trim();
-    return tail
-      .split(',')
-      .map(s => s.trim())
-      .filter(Boolean);
+  // Resolver nombre del estudiante por id para mostrar en detalle
+  const getStudentName = (studentId: string): string => {
+    const student = students.find(s => s.id === studentId);
+    return student ? `${student.firstName} ${student.lastName ?? ''}`.trim() : 'Estudiante desconocido';
   };
 
-  const openHistoryDetail = (item: Activity) => {
+  // Abre modal de detalle para un registro
+  const openHistoryDetail = (item: AttendanceRecord) => {
     setSelectedHistory(item);
     setDetailOpen(true);
   };
 
+  // Guarda nuevo registro de asistencia con presentes/ausentes
   const onSave = async () => {
     if (!courseId) return;
     setSaving(true);
     try {
-      const date = new Date();
-      const dd = String(date.getDate()).padStart(2, '0');
-      const mm = String(date.getMonth() + 1).padStart(2, '0');
-      const yyyy = date.getFullYear();
-      const title = `Asistencia - ${dd}/${mm}/${yyyy}`;
-      const presentCount = students.filter(s => s.id && present[s.id]).length;
-      const absentList = students.filter(s => s.id && !present[s.id]).map(s => `${s.firstName} ${s.lastName ?? ''}`.trim());
-      const description = `Presentes: ${presentCount}/${students.length}` + (absentList.length ? `\nAusentes: ${absentList.join(', ')}` : '');
-      await createActivity({
-        title,
-        description,
-        category: 'Asistencia',
+      const presentStudents = students.filter(s => s.id && present[s.id]).map(s => s.id!);
+      const absentStudents = students.filter(s => s.id && !present[s.id]).map(s => s.id!);
+      
+      await createAttendanceRecord({
         courseId,
-        priority: 'media',
-        completed: true,
+        presentStudents,
+        absentStudents,
+        totalStudents: students.length,
       });
-      Alert.alert('Asistencia guardada', 'Se registró la asistencia como una actividad.');
-      navigation.navigate('Activities', { filterCourseId: courseId });
+      
+      Alert.alert('Asistencia guardada', 'Se registró la asistencia correctamente.');
+      // Recargar la lista de estudiantes para refrescar la vista
+      load();
     } catch (e: any) {
       Alert.alert('Error', e?.message ?? 'No se pudo guardar la asistencia');
     } finally {
@@ -189,10 +180,10 @@ export default function AttendanceScreen({ navigation, route }: Props) {
                 <TouchableOpacity key={it.id} onPress={() => openHistoryDetail(it)} activeOpacity={0.85} style={[styles.historyItem, { borderColor: darkColors.border }] }>
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <MaterialCommunityIcons name="calendar-check" size={18} color={darkColors.accent} />
-                    <Text style={[styles.historyItemTitle, { color: colors.text }]}>{it.title}</Text>
+                    <Text style={[styles.historyItemTitle, { color: colors.text }]}>{it.date}</Text>
                   </View>
-                  {!!it.description && (
-                    <Text style={[styles.historyItemDesc, { color: darkColors.mutedText }]}>{it.description}</Text>
+                  {!!(it.notes || typeof it.presentCount === 'number') && (
+                    <Text style={[styles.historyItemDesc, { color: darkColors.mutedText }]}>{it.notes ? it.notes : `Presentes: ${it.presentCount} · Ausentes: ${it.absentCount}`}</Text>
                   )}
                 </TouchableOpacity>
               ))}
@@ -202,7 +193,7 @@ export default function AttendanceScreen({ navigation, route }: Props) {
       )}
 
       {!loading && students.length === 0 && (
-        <Text style={[styles.empty, { color: colors.textSecondary }]}>No hay estudiantes en esta clase.</Text>
+        <Text style={[styles.empty, { color: (colors as any).mutedText || colors.text }]}>No hay estudiantes en esta clase.</Text>
       )}
 
       {!loading && students.length > 0 && (
@@ -381,40 +372,35 @@ export default function AttendanceScreen({ navigation, route }: Props) {
             <Text style={[styles.modalTitle, { color: colors.text }]}>Detalle de asistencia</Text>
             {!!selectedHistory && (
               <>
-                <Text style={[styles.modalHelp, { color: darkColors.mutedText }]}>{selectedHistory.title}</Text>
-                {(() => {
-                  const absents = parseAbsentNames(selectedHistory.description);
-                  const absentSet = new Set(absents.map(n => n.toLowerCase()));
-                  const presentNames = students
-                    .map(s => `${s.firstName} ${s.lastName ?? ''}`.trim())
-                    .filter(n => !absentSet.has(n.toLowerCase()));
-                  return (
-                    <View style={{ marginTop: 12 }}>
-                      <Text style={[styles.historyTitle, { color: colors.text }]}>Presentes</Text>
-                      {presentNames.length === 0 ? (
-                        <Text style={[styles.historyEmpty, { color: darkColors.mutedText }]}>Ninguno</Text>
-                      ) : (
-                        presentNames.map((n, idx) => (
-                          <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
-                            <MaterialCommunityIcons name="checkbox-marked-circle" size={16} color={darkColors.success} />
-                            <Text style={{ marginLeft: 8, color: colors.text }}>{n}</Text>
-                          </View>
-                        ))
-                      )}
-                      <Text style={[styles.historyTitle, { color: colors.text, marginTop: 12 }]}>Ausentes</Text>
-                      {absents.length === 0 ? (
-                        <Text style={[styles.historyEmpty, { color: darkColors.mutedText }]}>Ninguno</Text>
-                      ) : (
-                        absents.map((n, idx) => (
-                          <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
-                            <MaterialCommunityIcons name="close-circle" size={16} color={darkColors.error} />
-                            <Text style={{ marginLeft: 8, color: colors.text }}>{n}</Text>
-                          </View>
-                        ))
-                      )}
-                    </View>
-                  );
-                })()}
+                <Text style={[styles.modalHelp, { color: darkColors.mutedText }]}>
+                  Asistencia - {selectedHistory.date}
+                </Text>
+                <View style={{ marginTop: 12 }}>
+                  <Text style={[styles.historyTitle, { color: colors.text }]}>
+                    Presentes ({selectedHistory.presentStudents.length}/{selectedHistory.totalStudents})
+                  </Text>
+                  {selectedHistory.presentStudents.length === 0 ? (
+                    <Text style={[styles.historyEmpty, { color: darkColors.mutedText }]}>Ninguno</Text>
+                  ) : (
+                    selectedHistory.presentStudents.map((studentId, idx) => (
+                      <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+                        <MaterialCommunityIcons name="checkbox-marked-circle" size={16} color={darkColors.success} />
+                        <Text style={{ marginLeft: 8, color: colors.text }}>{getStudentName(studentId)}</Text>
+                      </View>
+                    ))
+                  )}
+                  <Text style={[styles.historyTitle, { color: colors.text, marginTop: 12 }]}>Ausentes</Text>
+                  {selectedHistory.absentStudents.length === 0 ? (
+                    <Text style={[styles.historyEmpty, { color: darkColors.mutedText }]}>Ninguno</Text>
+                  ) : (
+                    selectedHistory.absentStudents.map((studentId, idx) => (
+                      <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+                        <MaterialCommunityIcons name="close-circle" size={16} color={darkColors.error} />
+                        <Text style={{ marginLeft: 8, color: colors.text }}>{getStudentName(studentId)}</Text>
+                      </View>
+                    ))
+                  )}
+                </View>
               </>
             )}
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 16 }}>
