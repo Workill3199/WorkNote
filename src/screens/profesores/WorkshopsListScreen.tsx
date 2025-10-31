@@ -64,7 +64,10 @@ export default function WorkshopsListScreen({ navigation }: Props) {
       {!!error && <Text style={[styles.error, { color: '#d32f2f' }]}>{error}</Text>}
 
       {!loading && items.length === 0 && (
-        <Text style={[styles.empty, { color: colors.mutedText }]}>No hay talleres aún. Crea el primero.</Text>
+        // En el tema por defecto de React Navigation no existe 'mutedText'.
+        // Usamos una aproximación segura: si el tema extendido provee 'mutedText'
+        // la usamos; de lo contrario caemos a 'colors.text'.
+        <Text style={[styles.empty, { color: (colors as any).mutedText || colors.text }]}>No hay talleres aún. Crea el primero.</Text>
       )}
 
       {/* Lista de talleres */}

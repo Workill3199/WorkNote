@@ -14,8 +14,10 @@ const defaultLng = 'es';
 void i18n
   .use(initReactI18next)
   .init({
-    // Asegura compatibilidad con el formato de recursos JSON v3.
-    compatibilityJSON: 'v3',
+    // Ajuste de compatibilidad JSON acorde a i18next v25: usar 'v4'.
+    // En versiones recientes, el tipo acepta 'v4' (y no 'v3'),
+    // lo que evita el error de tipos en TypeScript.
+    compatibilityJSON: 'v4',
     // Idioma inicial; controla qué paquete de traducción se usa.
     lng: defaultLng,
     // Si falta una clave en el idioma actual, se recurre a este idioma.
