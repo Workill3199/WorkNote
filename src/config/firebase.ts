@@ -36,11 +36,17 @@ const legacyEnv: FirebaseExtra = {
   appId: process.env.FIREBASE_APP_ID,
 };
 
+const normalizeBucket = (b?: string) => {
+  if (!b) return b;
+  // Algunas variables vienen con dominio "firebasestorage.app"; el bucket válido es "<project>.appspot.com"
+  return b.replace('.firebasestorage.app', '.appspot.com');
+};
+
 const firebaseExtra: FirebaseExtra = {
   apiKey: expoExtra?.apiKey || publicEnv.apiKey || legacyEnv.apiKey,
   authDomain: expoExtra?.authDomain || publicEnv.authDomain || legacyEnv.authDomain,
   projectId: expoExtra?.projectId || publicEnv.projectId || legacyEnv.projectId,
-  storageBucket: expoExtra?.storageBucket || publicEnv.storageBucket || legacyEnv.storageBucket,
+  storageBucket: normalizeBucket(expoExtra?.storageBucket || publicEnv.storageBucket || legacyEnv.storageBucket),
   messagingSenderId: expoExtra?.messagingSenderId || publicEnv.messagingSenderId || legacyEnv.messagingSenderId,
   appId: expoExtra?.appId || publicEnv.appId || legacyEnv.appId,
 };
@@ -87,7 +93,7 @@ if (!hasConfig) {
       }
     })();
   }
-  storage = getStorage(app);
+  storage = getStorage(app, firebaseExtra.storageBucket ? `gs://${firebaseExtra.storageBucket}` : undefined as any);
 }
 
 export { app, auth, db, storage };

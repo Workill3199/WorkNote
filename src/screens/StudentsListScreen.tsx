@@ -4,6 +4,7 @@ import { useTheme } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { listStudents, Student, deleteStudent, listStudentsByCourse, listStudentsByWorkshop } from '../services/students';
 import { listCourses, Course } from '../services/courses';
+import NeonButton from '../components/NeonButton';
 import StudentListItem from '../components/StudentListItem';
 import { fonts } from '../theme/typography';
 import { darkColors } from '../theme/colors';
@@ -19,6 +20,7 @@ export default function StudentsListScreen({ navigation, route }: Props) {
   const [selectedCourseId, setSelectedCourseId] = useState<string>('');
   const [courses, setCourses] = useState<Course[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
+  const filterCourseId = (route as any)?.params?.filterCourseId as string | undefined;
 
   const load = async () => {
     setError(null);
@@ -73,9 +75,22 @@ export default function StudentsListScreen({ navigation, route }: Props) {
       {/* Header estilo dashboard */}
       <View style={[styles.header, { borderBottomColor: darkColors.border }] }>
         <Text style={[styles.title, { color: colors.text }]}>Estudiantes</Text>
-        <TouchableOpacity style={[styles.addBtn, { backgroundColor: darkColors.primary }]} onPress={() => navigation.navigate('StudentCreate')}> 
-          <Text style={styles.addText}>+ Registrar</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {!!filterCourseId && (
+            <NeonButton
+              title="Asistencia"
+              onPress={() => navigation.navigate('Attendance', { filterCourseId })}
+              colors={{ ...colors, primary: darkColors.success } as any}
+              shadowRadius={12}
+              elevation={6}
+              style={[styles.addBtn, { backgroundColor: darkColors.success, marginRight: 8 }]}
+              textStyle={styles.addText}
+            />
+          )}
+          <TouchableOpacity style={[styles.addBtn, { backgroundColor: darkColors.primary }]} onPress={() => navigation.navigate('StudentCreate')}> 
+            <Text style={styles.addText}>+ Registrar</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Barra de búsqueda */}

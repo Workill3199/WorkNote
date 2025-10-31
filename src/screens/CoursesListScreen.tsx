@@ -2,8 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, TextInput, Platform } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { listCourses, Course, deleteCourse } from '../services/courses';
-import { listStudents, Student } from '../services/students';
+import { listCourses, Course, deleteCourse, joinCourseByShareCode } from '../services/courses';
+import { auth } from '../config/firebase';
+import { listStudentsByCourse } from '../services/students';
 import ManagementCard from '../components/ManagementCard';
 import CourseListItem from '../components/CourseListItem';
 import { darkColors } from '../theme/colors';
@@ -18,7 +19,9 @@ export default function CoursesListScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
-  const [selectedSemester, setSelectedSemester] = useState<'Todos' | '1' | '2'>('Todos');
+  const [joinOpen, setJoinOpen] = useState(false);
+  const [joinCode, setJoinCode] = useState('');
+  const [joining, setJoining] = useState(false);
 
   const load = async () => {
     setError(null);
@@ -26,9 +29,18 @@ export default function CoursesListScreen({ navigation }: Props) {
     try {
       const data = await listCourses();
       setItems(data);
-      const students = await listStudents();
       const counts: Record<string, number> = {};
-      students.forEach(s => { const k = s.courseId || ''; if (k) counts[k] = (counts[k] || 0) + 1; });
+      await Promise.all(
+        data.map(async (c) => {
+          try {
+            if (!c.id) return;
+            const arr = await listStudentsByCourse(c.id);
+            counts[c.id] = arr.length;
+          } catch {
+            if (c.id) counts[c.id] = 0;
+          }
+        })
+      );
       setStudentCounts(counts);
     } catch (e: any) {
       setError(e?.message ?? 'Error al cargar cursos');
@@ -58,20 +70,71 @@ export default function CoursesListScreen({ navigation }: Props) {
         (c.classroom ?? '').toLowerCase().includes(q) ||
         (c.schedule ?? '').toLowerCase().includes(q)
       );
-      const semMatch = selectedSemester === 'Todos' || (c.semester ?? '') === selectedSemester;
-      return textMatch && semMatch;
+      return textMatch;
     });
-  }, [items, query, selectedSemester]);
+  }, [items, query]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }] }>
       {/* Header estilo dashboard */}
       <View style={[styles.header, { borderBottomColor: darkColors.border }] }>
         <Text style={[styles.title, { color: colors.text }]}>Cursos</Text>
-        <TouchableOpacity style={[styles.addBtn, { backgroundColor: darkColors.primary }]} onPress={() => navigation.navigate('CourseCreate')}> 
-          <Text style={styles.addText}>+ Agregar</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <TouchableOpacity style={[styles.addBtn, { backgroundColor: darkColors.accent }]} onPress={() => setJoinOpen(v => !v)}> 
+            <Text style={styles.addText}>Unirme</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.addBtn, { backgroundColor: darkColors.primary }]} onPress={() => navigation.navigate('CourseCreate')}> 
+            <Text style={styles.addText}>+ Agregar</Text>
+          </TouchableOpacity>
+        </View>
       </View>
+
+      {/* Unirse a clase por código */}
+      {joinOpen && (
+        <View style={styles.joinRow}>
+          <View
+            style={[
+              styles.joinBox,
+              Platform.OS === 'web'
+                ? ({ backgroundColor: 'rgba(20,25,35,0.5)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' } as any)
+                : { backgroundColor: darkColors.card },
+            ]}
+          >
+            <TextInput
+              placeholder="Código de clase (ABC123)"
+              placeholderTextColor={darkColors.mutedText}
+              value={joinCode}
+              onChangeText={setJoinCode}
+              style={styles.joinInput}
+              autoCapitalize="characters"
+            />
+            <TouchableOpacity
+              style={[styles.joinBtn, { backgroundColor: darkColors.accent }]}
+              onPress={async () => {
+                if (!joinCode.trim()) return;
+                setJoining(true);
+                try {
+                  const course = await joinCourseByShareCode(joinCode.trim());
+                  if (!course) {
+                    Alert.alert('Código inválido', 'No se encontró un curso con ese código.');
+                  } else {
+                    Alert.alert('Listo', `Te uniste a "${course.title}"`);
+                    setJoinCode('');
+                    await load();
+                  }
+                } catch (e: any) {
+                  Alert.alert('Error', e?.message ?? 'No se pudo unir a la clase');
+                } finally {
+                  setJoining(false);
+                }
+              }}
+              disabled={joining}
+            >
+              <Text style={styles.addText}>{joining ? '...' : 'Unirme'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       {/* Barra de búsqueda */}
       <View style={styles.searchRow}>
@@ -93,19 +156,7 @@ export default function CoursesListScreen({ navigation }: Props) {
         </View>
       </View>
 
-      {/* Chips de filtro de semestre */}
-      <View style={styles.filtersRow}>
-        {(['Todos', '1', '2'] as const).map((s) => (
-          <TouchableOpacity
-            key={s}
-            onPress={() => setSelectedSemester(s)}
-            style={[styles.chip, selectedSemester === s && styles.chipActive]}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.chipText, selectedSemester === s && styles.chipTextActive]}>{s === 'Todos' ? 'Todos' : `Semestre ${s}`}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      {/* Filtros de semestre removidos según solicitud */}
 
       {loading && <ActivityIndicator color={colors.primary} style={{ marginTop: 16 }} />}
       {!!error && <Text style={[styles.error, { color: '#d32f2f' }]}>{error}</Text>}
@@ -127,6 +178,10 @@ export default function CoursesListScreen({ navigation }: Props) {
                   studentsCount={studentCounts[item.id! ] || 0}
                   variant="tile"
                   onPress={() => navigation.navigate('Activities', { filterCourseId: item.id })}
+                  {...(item.ownerId === (auth?.currentUser?.uid || '') ? {
+                    onEdit: () => navigation.navigate('CourseCreate', { editItem: item }),
+                    onDelete: () => onDelete(item.id),
+                  } : {})}
                 />
               </View>
             ))}
@@ -141,6 +196,7 @@ export default function CoursesListScreen({ navigation }: Props) {
                   ...(item.classroom ? [{ icon: 'map-marker', text: `Aula: ${item.classroom}` }] : []),
                   ...(item.schedule ? [{ icon: 'clock-outline', text: `Horario: ${item.schedule}` }] : []),
                   ...(item.semester ? [{ icon: 'calendar-blank', text: `Semestre: ${item.semester}` }] : []),
+                  ...(item.shareCode && item.ownerId === (auth?.currentUser?.uid || '') ? [{ icon: 'key', text: `Código: ${item.shareCode}` }] : []),
                   { icon: 'account-group', text: `Estudiantes: ${studentCounts[item.id! ] || 0}` },
                 ]}
                 variant="course"
@@ -166,24 +222,16 @@ const styles = StyleSheet.create({
   error: { marginTop: 8, textAlign: 'center' },
   empty: { marginTop: 12, textAlign: 'center' },
   row: { borderWidth: 1, borderRadius: 10, padding: 12, flexDirection: 'row', alignItems: 'center', marginTop: 8 },
+  joinRow: { marginTop: 12, marginBottom: 6 },
+  joinBox: { borderWidth: 1, borderColor: darkColors.border, borderRadius: 12, padding: 8, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  joinInput: { flex: 1, color: '#fff', fontFamily: fonts.regular, fontSize: 14 },
+  joinBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
   searchRow: { marginTop: 12, marginBottom: 6 },
   searchBox: { borderWidth: 1, borderColor: darkColors.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 },
   searchInput: { color: '#fff', fontFamily: fonts.regular, fontSize: 14 },
 
   // Diseño: chips y grid
-  filtersRow: { flexDirection: 'row', gap: 8 as any, marginBottom: 8 },
-  chip: {
-    borderWidth: 1,
-    borderColor: darkColors.border,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    backgroundColor: Platform.OS === 'web' ? 'rgba(20,25,35,0.5)' : darkColors.card,
-    ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' } as any) : {}),
-  },
-  chipActive: { borderColor: 'rgba(110,120,255,0.5)', backgroundColor: 'rgba(110,120,255,0.10)' },
-  chipText: { color: darkColors.mutedText, fontSize: 12 },
-  chipTextActive: { color: darkColors.primary },
+  // filtros de semestre removidos
   grid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 },
   gridItem: { width: '50%', paddingHorizontal: 4 },
 });

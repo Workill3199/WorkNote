@@ -1,4 +1,4 @@
-import { addDoc, collection, getDocs, orderBy, query, serverTimestamp, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import { addDoc, collection, getDocs, query, serverTimestamp, updateDoc, doc, deleteDoc, where } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
 
 export type Workshop = {
@@ -26,9 +26,11 @@ export async function createWorkshop(input: { title: string; description?: strin
 }
 
 export async function listWorkshops(): Promise<Workshop[]> {
-  const q = query(col(), orderBy('createdAt', 'desc'));
+  const uid = auth?.currentUser?.uid || '';
+  const q = query(col(), where('ownerId', '==', uid));
   const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+  const rows = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+  return rows.sort((a: any, b: any) => (a.createdAt?.toMillis?.() ?? 0) < (b.createdAt?.toMillis?.() ?? 0) ? 1 : -1);
 }
 
 export async function updateWorkshop(id: string, input: Partial<Workshop>) {

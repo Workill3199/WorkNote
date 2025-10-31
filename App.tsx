@@ -15,6 +15,7 @@ import ActivitiesListScreen from './src/screens/ActivitiesListScreen';
 import ActivityCreateScreen from './src/screens/ActivityCreateScreen';
 import StudentsListScreen from './src/screens/StudentsListScreen';
 import StudentCreateScreen from './src/screens/StudentCreateScreen';
+import AttendanceScreen from './src/screens/AttendanceScreen';
 import { DarkThemeCustom } from './src/theme/navigation';
 import { darkColors } from './src/theme/colors';
 import MoreScreen from './src/screens/MoreScreen';
@@ -151,7 +152,8 @@ function AppNavigation() {
         <Stack.Screen name="ActivityCreate" component={ActivityCreateScreen} options={{ title: 'Nueva Actividad' }} />
         <Stack.Screen name="Students" component={StudentsListScreen} options={{ title: 'Estudiantes' }} />
         <Stack.Screen name="StudentCreate" component={StudentCreateScreen} options={{ title: 'Registrar Estudiante' }} />
-        <Stack.Screen name="ProfileSettings" component={ProfileSettingsScreen} options={{ title: 'Configuración de Perfil' }} />
+        <Stack.Screen name="Attendance" component={AttendanceScreen} options={{ title: 'Asistencia' }} />
+        <Stack.Screen name="ProfileSettings" component={ProfileSettingsScreen} options={{ headerShown: false }} />
         <Stack.Screen name="NotificationsSettings" component={NotificationsSettingsScreen} options={{ title: 'Notificaciones' }} />
         <Stack.Screen name="PrivacySettings" component={PrivacySettingsScreen} options={{ title: 'Privacidad' }} />
         <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} options={{ title: 'Política de Privacidad' }} />

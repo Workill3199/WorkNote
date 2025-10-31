@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Dimensions, Modal, ActivityIndicator } from 'react-native';
 // import { BlurView } from 'expo-blur';
 import { useTheme } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { signOut } from 'firebase/auth';
 import { auth } from '../config/firebase';
-import { listCourses } from '../services/courses';
+import { listCourses, Course } from '../services/courses';
 import { listWorkshops } from '../services/workshops';
 import { listStudents } from '../services/students';
 import { listActivities } from '../services/activities';
@@ -32,6 +32,10 @@ export default function HomeScreen({ navigation }: Props) {
   const [activitiesCount, setActivitiesCount] = useState(0);
   const [evaluationsThisWeek, setEvaluationsThisWeek] = useState(4);
   const [classesThisWeek, setClassesThisWeek] = useState(8);
+  // Picker de clase para asistencia
+  const [coursePickerOpen, setCoursePickerOpen] = useState(false);
+  const [coursePickerLoading, setCoursePickerLoading] = useState(false);
+  const [courseItems, setCourseItems] = useState<Course[]>([]);
 
   const loadCounts = async () => {
     try {
@@ -67,7 +71,7 @@ export default function HomeScreen({ navigation }: Props) {
     <View style={[styles.header, { backgroundColor: palette.card }]}> 
       <View style={styles.headerContent}>
         <View style={styles.userInfo}>
-          <View style={styles.avatarContainer}>
+          <TouchableOpacity style={styles.avatarContainer} onPress={() => navigation.navigate('ProfileSettings')} accessibilityLabel="Abrir perfil">
             {photoURL ? (
               <Image source={{ uri: photoURL }} style={styles.avatar} />
             ) : (
@@ -75,9 +79,14 @@ export default function HomeScreen({ navigation }: Props) {
                 <Text style={[styles.avatarText, { color: '#fff' }]}>{initial}</Text>
               </View>
             )}
-          </View>
+          </TouchableOpacity>
           <View>
-            <Text style={[styles.greeting, { color: '#fff' }]}>¡Hola, {username}!</Text>
+            <View style={styles.greetingRow}>
+              <Text style={[styles.greeting, { color: '#fff' }]}>¡Hola, {username}!</Text>
+              <TouchableOpacity style={styles.editProfileBtn} onPress={() => navigation.navigate('ProfileSettings')} accessibilityLabel="Editar perfil">
+                <MaterialCommunityIcons name="account-edit" size={18} color="#fff" />
+              </TouchableOpacity>
+            </View>
             <Text style={[styles.subtitle, { color: palette.textSecondary }]}>Aquí tienes el resumen</Text>
           </View>
         </View>
@@ -160,10 +169,10 @@ export default function HomeScreen({ navigation }: Props) {
   const QuickActions = () => {
     const rootNav = navigation.getParent()?.getParent();
     const actions = [
-      { icon: 'file-document', label: 'Nueva actividad', color: '#60A5FA', onPress: () => rootNav?.navigate('ActivityCreate') },
-      { icon: 'calendar', label: 'Programar clase', color: '#A78BFA', onPress: () => rootNav?.navigate('Courses') },
-      { icon: 'account-group', label: 'Ver estudiantes', color: '#22D3EE', onPress: () => rootNav?.navigate('Students') },
-      { icon: 'chart-line', label: 'Analíticas', color: '#34D399', onPress: () => rootNav?.navigate('Activities') },
+      { icon: 'file-document', label: 'Nueva actividad', color: '#60A5FA', onPress: () => navigation.navigate('ActivityCreate') },
+      { icon: 'calendar', label: 'Programar clase', color: '#A78BFA', onPress: () => navigation.navigate('CourseCreate') },
+          { icon: 'account-plus', label: 'Agregar estudiante', color: '#22D3EE', onPress: () => navigation.navigate('StudentCreate') },
+      { icon: 'clipboard-check', label: 'Asistencia', color: '#34D399', onPress: openCoursePicker },
     ];
 
     return (
@@ -206,6 +215,25 @@ export default function HomeScreen({ navigation }: Props) {
     );
   };
 
+  // Lógica del selector de clase para Asistencia
+  const openCoursePicker = async () => {
+    setCoursePickerOpen(true);
+    setCoursePickerLoading(true);
+    try {
+      const c = await listCourses();
+      setCourseItems(c);
+    } catch (e) {
+      setCourseItems([]);
+    } finally {
+      setCoursePickerLoading(false);
+    }
+  };
+
+  const navigateToAttendance = (courseId: string) => {
+    setCoursePickerOpen(false);
+    navigation.navigate('Attendance', { filterCourseId: courseId });
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background, paddingTop: insets.top }]}>
       <DashboardHeader />
@@ -216,6 +244,39 @@ export default function HomeScreen({ navigation }: Props) {
         <UpcomingDeadlines />
       </ScrollView>
       {/* Barra inferior personalizada eliminada para evitar duplicado con Tab Navigator */}
+      <Modal visible={coursePickerOpen} transparent animationType="fade" onRequestClose={() => setCoursePickerOpen(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalBox, { backgroundColor: palette.card, borderColor: 'rgba(255, 255, 255, 0.1)' }] }>
+            <Text style={[styles.modalTitle, { color: '#fff' }]}>Selecciona la clase</Text>
+            {coursePickerLoading ? (
+              <ActivityIndicator color={palette.primary} style={{ marginTop: 12 }} />
+            ) : (
+              <>
+                {courseItems.length === 0 ? (
+                  <Text style={[styles.modalEmpty, { color: palette.textSecondary }]}>No hay cursos. Crea uno para tomar asistencia.</Text>
+                ) : (
+                  <ScrollView style={{ maxHeight: 320 }} contentContainerStyle={{ paddingBottom: 8 }}>
+                    {courseItems.map((c) => (
+                      <TouchableOpacity key={c.id} style={[styles.courseItem, { borderColor: 'rgba(255, 255, 255, 0.1)' }]} activeOpacity={0.85} onPress={() => navigateToAttendance(c.id!)}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <MaterialCommunityIcons name="book-open-variant" size={18} color={palette.primary} />
+                          <Text style={[styles.courseItemTitle, { color: '#fff' }]}>{c.title}</Text>
+                        </View>
+                        <Text style={[styles.courseItemSubtitle, { color: palette.textSecondary }]}>{[c.classroom, c.schedule].filter(Boolean).join(' · ')}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )}
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12 }}>
+                  <TouchableOpacity onPress={() => setCoursePickerOpen(false)} style={[styles.modalBtn, { borderColor: 'rgba(255, 255, 255, 0.1)' }]}>
+                    <Text style={[styles.modalBtnText, { color: '#fff' }]}>Cancelar</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -270,6 +331,16 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     lineHeight: 18,
+  },
+  greetingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  editProfileBtn: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
   },
   subtitle: {
     fontSize: 14,
@@ -453,5 +524,53 @@ const styles = StyleSheet.create({
   deadlineDate: {
     fontSize: 12,
     marginTop: 2,
+  },
+  // Modal selector de clase
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  modalBox: {
+    width: '100%',
+    maxWidth: 480,
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 16,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  modalEmpty: {
+    marginTop: 8,
+    fontSize: 12,
+  },
+  modalBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  modalBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  courseItem: {
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+  },
+  courseItemTitle: {
+    marginLeft: 8,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  courseItemSubtitle: {
+    marginTop: 4,
+    fontSize: 12,
   },
 });

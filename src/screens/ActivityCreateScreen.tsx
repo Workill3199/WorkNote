@@ -6,6 +6,7 @@ import { createActivity, updateActivity, deleteActivity, Activity } from '../ser
 import { listCourses, Course } from '../services/courses';
 import { darkColors } from '../theme/colors';
 import { fonts } from '../theme/typography';
+// Adjuntos removidos: no usamos Storage aquí
 
 type Props = NativeStackScreenProps<any>;
 
@@ -24,6 +25,7 @@ export default function ActivityCreateScreen({ navigation, route }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
+  // Adjuntos removidos
 
   useEffect(() => {
     // Cargar lista de clases (cursos) para el selector
@@ -114,6 +116,8 @@ export default function ActivityCreateScreen({ navigation, route }: Props) {
           value={category}
           onChangeText={setCategory}
         />
+
+        {/* Adjuntos removidos a solicitud: no se muestra botón ni selector */}
 
         <Text style={[styles.label, { color: colors.text }]}>Fecha de vencimiento</Text>
         {Platform.OS === 'web' ? (
