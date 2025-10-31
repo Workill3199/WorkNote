@@ -5,7 +5,6 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { fonts } from '../theme/typography';
 import { darkColors, lightColors } from '../theme/colors';
 import NeonButton from '../components/NeonButton';
-import { setLastSelectedRole } from '../utils/roles';
 
 type Props = NativeStackScreenProps<any>;
 
@@ -28,14 +27,14 @@ export default function RegisterRoleScreen({ navigation }: Props) {
       <View style={{ gap: 12, marginTop: 8 }}>
         <NeonButton
           title="Registrarse como Profesor"
-          onPress={async () => { await setLastSelectedRole('profesor'); navigation.navigate('Register', { role: 'profesor' }); }}
+          onPress={async () => { navigation.navigate('Register', { role: 'profesor' }); }}
           colors={{ ...colors, primary: palette.primary } as any}
           style={styles.button}
           textStyle={styles.buttonText}
         />
         <NeonButton
           title="Registrarse como Alumno"
-          onPress={async () => { await setLastSelectedRole('alumno'); navigation.navigate('Register', { role: 'alumno' }); }}
+          onPress={async () => { navigation.navigate('Register', { role: 'alumno' }); }}
           colors={{ ...colors, primary: palette.accent } as any}
           style={[styles.button]}
           textStyle={styles.buttonText}

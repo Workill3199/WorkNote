@@ -224,14 +224,9 @@ function AppNavigation() {
           headerTitleStyle: { fontFamily: fonts.bold },
         }}
       >
-<<<<<<< HEAD
-        <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }} />
-=======
-        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }}/>
         <Stack.Screen name="RegisterRole" component={RegisterRoleScreen} options={{ title: 'Elegir rol' }} />
-        <Stack.Screen name="Register" component={RegisterScreen} />
->>>>>>> origin/main
+        <Stack.Screen name="Register" component={RegisterScreen}  options={{ headerShown: false }} />
         <Stack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
         <Stack.Screen name="StudentMain" component={StudentTabs} options={{ headerShown: false }} />
         {/* Rutas internas usadas por acciones del Home */}

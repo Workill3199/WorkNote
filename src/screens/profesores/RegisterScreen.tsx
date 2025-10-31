@@ -7,31 +7,16 @@ import { auth } from '../../config/firebase';
 import { updateProfile } from 'firebase/auth';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { fonts } from '../../theme/typography';
-import { Checkbox } from 'expo-checkbox';
 import { darkColors, lightColors } from '../../theme/colors';
 import NeonButton from '../../components/NeonButton';
 import { createUser } from '../../services/users';
-import { setUserRole, getLastSelectedRole } from '../../utils/roles';
 
 type Props = NativeStackScreenProps<any>;
 
 export default function RegisterScreen({ navigation, route }: Props) {
   const { colors } = useTheme();
   const palette = colors.background === darkColors.background ? darkColors : lightColors;
-  const [role, setRole] = useState<'profesor' | 'alumno'>(((route as any)?.params?.role as 'profesor' | 'alumno') || 'profesor');
 
-  useEffect(() => {
-    const resolveRole = async () => {
-      const paramRole = ((route as any)?.params?.role as 'profesor' | 'alumno') || null;
-      if (paramRole) {
-        setRole(paramRole);
-        return;
-      }
-      const last = await getLastSelectedRole();
-      if (last) setRole(last);
-    };
-    resolveRole();
-  }, [route]);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -43,6 +28,17 @@ export default function RegisterScreen({ navigation, route }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [isTeacher, setTeacher] = useState(false); // verifica que es un profesor
 
+  useEffect(() => {
+    const resolveRole = async () => {
+      const paramRole = ((route as any)?.params?.role as 'profesor' | 'alumno') || null;
+      if (paramRole == 'profesor') {
+        setTeacher(true);
+        return;
+      }
+      
+    };
+    resolveRole();
+  }, [route]);
   const handleRegister = async () => {
     setError(null);
     if (!firstName || !lastName || !email || !password || !confirm) {
@@ -63,7 +59,9 @@ export default function RegisterScreen({ navigation, route }: Props) {
     }
     setLoading(true);
     try {
-      await createUser({fullName: fullName, email: email, password: password, password_confirm: confirm, isTeacher: isTeacher})
+      const displayName = `${firstName.trim()} ${lastName.trim()}`.trim();
+
+      await createUser({fullName: displayName, email: email, password: password, password_confirm: confirm, isTeacher: isTeacher})
       navigation.replace('Main');
       await createUserWithEmailAndPassword(auth, email.trim(), password);
       const user = auth.currentUser;
@@ -72,12 +70,8 @@ export default function RegisterScreen({ navigation, route }: Props) {
         try {
           await updateProfile(user, { displayName });
         } catch {}
-        // Persistimos el rol para futuras sesiones
-        try {
-          await setUserRole(user.uid, role);
-        } catch {}
       }
-      if (role === 'alumno') {
+      if (!isTeacher) {
         navigation.replace('StudentMain');
       } else {
         navigation.replace('Main');
@@ -120,10 +114,6 @@ export default function RegisterScreen({ navigation, route }: Props) {
           value={lastName}
           onChangeText={setLastName}
         />
-      </View>
-      <View style={styles.section}>
-        <Checkbox style={styles.checkbox} value={isTeacher} onValueChange={setTeacher} />
-        <Text style={[styles.paragraph, {color: colors.text}]}>Soy Profesor (dejar libre si eres alumno)</Text>
       </View>
 
       {/* Correo electrónico */}
