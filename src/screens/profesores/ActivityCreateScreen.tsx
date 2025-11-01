@@ -10,9 +10,6 @@ import {
   Alert,
   ScrollView,
 } from "react-native";
-import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
-import { storage } from "../../config/firebase";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useTheme } from "@react-navigation/native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import {
@@ -25,7 +22,6 @@ import { listCourses, Course } from "../../services/courses";
 import { darkColors } from "../../theme/colors";
 import { fonts } from "../../theme/typography";
 import { SafeAreaView } from "react-native-safe-area-context";
-import * as DocumentPicker from "expo-document-picker";
 import { FileUpload, SelectedFile } from "../../components/files";
 import { uploadFilesToServer } from "../../services/file";
 // Adjuntos removidos: no usamos Storage aquí
