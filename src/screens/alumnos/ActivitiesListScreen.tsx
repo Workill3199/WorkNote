@@ -85,16 +85,32 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
 
   const handleDownload = async (url: string, filename: string) => {
     try {
-      // Crear directorio temporal
-      const downloadsDir =
-        await Directory.documentDirectory.createDirectoryAsync("downloads", {
-          intermediates: true,
-        });
-      const localUri = `${downloadsDir.path}/${filename}`;
+      // Web: usar descarga directa por <a download>
+      if (Platform.OS === 'web') {
+        try {
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename || 'archivo';
+          a.style.display = 'none';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          Alert.alert('Descarga iniciada');
+          return url;
+        } catch {}
+      }
 
-      // Descargar usando la nueva API
-      const file = new File({ uri: localUri });
-      await file.downloadAsync(url);
+      // Nativo: crear directorio de descargas dentro del sandbox de la app
+      // Preferimos cacheDirectory (siempre tipado) y luego documentDirectory con cast para evitar error TS
+      const baseDir = ((FileSystem as any).cacheDirectory as string | null) || (FileSystem as any).documentDirectory || '';
+      const downloadsDir = `${baseDir}downloads`;
+      try {
+        await FileSystem.makeDirectoryAsync(downloadsDir, { intermediates: true });
+      } catch {}
+      const localUri = `${downloadsDir}/${filename}`;
+
+      // Descargar usando expo-file-system
+      await FileSystem.downloadAsync(url, localUri);
 
       Alert.alert("Descarga completada", `Archivo guardado en: ${localUri}`);
       return localUri;
@@ -346,7 +362,7 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
             toUpload = await res.blob();
           } catch (err) {
             // Fallback móvil: leer como base64 y convertir a Blob vía data URL
-            const base64 = await FileSystem.readAsStringAsync(String(f?.uri ?? ''), { encoding: FileSystem.EncodingType.Base64 });
+            const base64 = await FileSystem.readAsStringAsync(String(f?.uri ?? ''), { encoding: 'base64' });
             const dataUrl = `data:${f?.type || 'application/octet-stream'};base64,${base64}`;
             const res2 = await fetch(dataUrl);
             toUpload = await res2.blob();

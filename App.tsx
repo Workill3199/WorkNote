@@ -35,6 +35,10 @@ import './src/i18n';
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import { Manrope_700Bold } from '@expo-google-fonts/manrope';
 import { fonts } from './src/theme/typography';
+import { silenceExpoGoNotificationsWarning } from './src/utils/silenceExpoGoNotifications';
+
+// Silencia el aviso de expo-notifications en Expo Go Android
+silenceExpoGoNotificationsWarning();
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();

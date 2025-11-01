@@ -39,15 +39,14 @@ export function FileUpload({
     input.multiple = multiple;
 
     input.onchange = (e: any) => {
-      const files: SelectedFile[] = Array.from(e?.target?.files || []).map(
-        (f: File) => ({
-          uri: URL.createObjectURL(f),
-          name: f.name,
-          size: f.size,
-          type: f.type,
-          fileRef: f,
-        })
-      );
+      const fileArray = (Array.from(e?.target?.files || []) as File[]);
+      const files: SelectedFile[] = fileArray.map((f) => ({
+        uri: URL.createObjectURL(f),
+        name: f.name,
+        size: f.size,
+        type: f.type,
+        fileRef: f,
+      }));
 
       if (files.length > maxFiles) {
         Alert.alert('Error', `Solo puedes seleccionar hasta ${maxFiles} archivos`);
@@ -172,7 +171,7 @@ export function FileUpload({
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'col',
+    flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
   },
