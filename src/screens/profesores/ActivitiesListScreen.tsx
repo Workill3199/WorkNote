@@ -1,7 +1,8 @@
 // Listado de actividades para profesores.
 // Permite filtrar, marcar como completada, eliminar y navegar.
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, TextInput, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, TextInput, Platform, ScrollView } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@react-navigation/native';
 import { darkColors } from '../../theme/colors';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -16,6 +17,7 @@ type Props = NativeStackScreenProps<any>;
 
 export default function ActivitiesListScreen({ navigation, route }: Props) {
   const { colors } = useTheme(); // Colores del tema activo
+  const insets = useSafeAreaInsets();
   const [items, setItems] = useState<Activity[]>([]); // Lista de actividades
   const [loading, setLoading] = useState(true); // Indicador de carga
   const [error, setError] = useState<string | null>(null); // Errores de carga
@@ -139,7 +141,13 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: T.bg } ]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: T.bg }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={[styles.container, { paddingTop: Math.max(insets.top, 8), paddingBottom: 24 }]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <MaterialCommunityIcons name="clipboard-list" size={18} color={T.text} />
@@ -202,7 +210,7 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
             textStyle={styles.addText}
           />
       </View>
-    </View>
+      </View>
 
     {/* Popup de código de clase */}
     {codeOpen && (
@@ -354,7 +362,8 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
           </View>
         );
       })}
-    </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 

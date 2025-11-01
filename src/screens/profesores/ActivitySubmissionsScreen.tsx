@@ -8,6 +8,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { listSubmissionsByActivity, Submission } from '../../services/submissions';
 import { listUsersByUids } from '../../services/users';
 import { darkColors } from '../../theme/colors';
+import { storage } from '../../config/firebase';
+import { getDownloadURL, ref } from 'firebase/storage';
 
 type Props = NativeStackScreenProps<any>;
 
@@ -52,6 +54,31 @@ export default function ActivitySubmissionsScreen({ route }: Props) {
       }
     })();
   }, [activityId, courseId]);
+
+  // Normaliza URLs antiguas de Storage con formato REST `o?name=` o gs:// y devuelve `getDownloadURL`
+  const resolveAttachmentUrl = async (att: { url: string }): Promise<string | undefined> => {
+    const u = att?.url || '';
+    try {
+      if (u.includes('/o?name=')) {
+        if (!storage) return undefined;
+        const urlObj = new URL(u);
+        const rawName = urlObj.searchParams.get('name') || '';
+        const path = decodeURIComponent(rawName);
+        const r = ref(storage!, path);
+        const fixed = await getDownloadURL(r);
+        return fixed;
+      }
+      if (u.startsWith('gs://')) {
+        if (!storage) return undefined;
+        const r = ref(storage!, u);
+        const fixed = await getDownloadURL(r);
+        return fixed;
+      }
+      return u;
+    } catch {
+      return undefined;
+    }
+  };
 
   // Abre/descarga adjuntos según plataforma (web/móvil)
   const onOpenAttachment = async (url: string, name?: string) => {
@@ -98,7 +125,14 @@ export default function ActivitySubmissionsScreen({ route }: Props) {
                       <View key={(f.url || idx.toString())} style={[styles.fileBadge, { borderColor: T.accent }] }>
                         <MaterialCommunityIcons name="file" size={14} color={T.text} />
                         <Text style={[styles.fileName, { color: T.text }]} numberOfLines={1}>{f.name || 'Archivo'}</Text>
-                        <TouchableOpacity onPress={() => onOpenAttachment(f.url, f.name)} style={[styles.downloadBtn, { backgroundColor: T.primary }]}>
+                        <TouchableOpacity onPress={async () => {
+                          const url = await resolveAttachmentUrl(f as any);
+                          if (!url) {
+                            Alert.alert('Aviso', 'El adjunto no está disponible o su URL es inválido.');
+                            return;
+                          }
+                          await onOpenAttachment(url, f.name);
+                        }} style={[styles.downloadBtn, { backgroundColor: T.primary }]}>
                           <Text style={styles.downloadText}>Descargar</Text>
                         </TouchableOpacity>
                       </View>

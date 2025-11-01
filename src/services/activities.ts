@@ -86,8 +86,8 @@ export async function listActivitiesByCourse(courseId: string): Promise<Activity
         visible = items.filter(r => (r.ownerId ?? '') === uid);
       }
     } catch {
-      // En caso de error al verificar inscripción, aplicar filtro por ownerId como fallback
-      visible = items.filter(r => (r.ownerId ?? '') === uid);
+      // En caso de error al verificar inscripción, no bloquear: mostrar actividades del curso
+      visible = items;
     }
   }
   return visible.sort((a, b) => (a.createdAt?.toMillis?.() ?? 0) < (b.createdAt?.toMillis?.() ?? 0) ? 1 : -1);

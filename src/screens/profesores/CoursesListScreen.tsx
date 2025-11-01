@@ -7,7 +7,6 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack'; // Tipo
 import { listCourses, Course, deleteCourse, joinCourseByShareCode, ensureCourseShareCode } from '../../services/courses'; // Servicios de cursos
 import { auth } from '../../config/firebase'; // Autenticación (para verificar dueño de curso)
 import { listStudentsByCourse } from '../../services/students'; // Servicio para contar estudiantes por curso
-import ManagementCard from '../../components/ManagementCard'; // Tarjeta para móvil
 import CourseListItem from '../../components/CourseListItem'; // Item para grid web
 import { darkColors } from '../../theme/colors'; // Paleta fija
 import { fonts } from '../../theme/typography'; // Tipografías
@@ -171,49 +170,27 @@ export default function CoursesListScreen({ navigation }: Props) {
       {!loading && filtered.length === 0 && (
         <Text style={[styles.empty, { color: (colors as any).mutedText || colors.text }]}>No hay cursos aún. Crea el primero.</Text>
       )}
-      {/* Grid en web, lista en móvil (mantiene acciones) */}
+      {/* Grid unificado en todas las plataformas */}
       {!loading && (
-        Platform.OS === 'web' ? (
-          <View style={styles.grid}>
-            {filtered.map((item) => (
-              <View key={item.id} style={styles.gridItem}>
-                <CourseListItem
-                  title={item.title}
-                  classroom={item.classroom}
-                  schedule={item.schedule}
-                  semester={item.semester}
-                  studentsCount={studentCounts[item.id! ] || 0}
-                  variant="tile"
-                  onPress={() => navigation.navigate('Activities', { filterCourseId: item.id })}
-                  {...(item.ownerId === (auth?.currentUser?.uid || '') ? {
-                    onEdit: () => navigation.navigate('CourseCreate', { editItem: item }),
-                    onDelete: () => onDelete(item.id),
-                  } : {})}
-                />
-              </View>
-            ))}
-          </View>
-        ) : (
-          <>
-            {filtered.map(item => (
-              <ManagementCard
-                key={item.id}
+        <View style={styles.grid}>
+          {filtered.map((item) => (
+            <View key={item.id} style={styles.gridItem}>
+              <CourseListItem
                 title={item.title}
-                details={[
-                  ...(item.classroom ? [{ icon: 'map-marker', text: `Aula: ${item.classroom}` }] : []),
-                  ...(item.schedule ? [{ icon: 'clock-outline', text: `Horario: ${item.schedule}` }] : []),
-                  ...(item.semester ? [{ icon: 'calendar-blank', text: `Semestre: ${item.semester}` }] : []),
-                  { icon: 'account-group', text: `Estudiantes: ${studentCounts[item.id! ] || 0}` },
-                ]}
-                variant="course"
-                onEdit={() => navigation.navigate('CourseCreate', { editItem: item })}
-                onDelete={() => onDelete(item.id)}
-                onViewStudents={() => navigation.navigate('Students', { filterCourseId: item.id })}
-                onViewActivities={() => navigation.navigate('Activities', { filterCourseId: item.id })}
+                classroom={item.classroom}
+                schedule={item.schedule}
+                semester={item.semester}
+                studentsCount={studentCounts[item.id! ] || 0}
+                variant="tile"
+                onPress={() => navigation.navigate('Activities', { filterCourseId: item.id })}
+                {...(item.ownerId === (auth?.currentUser?.uid || '') ? {
+                  onEdit: () => navigation.navigate('CourseCreate', { editItem: item }),
+                  onDelete: () => onDelete(item.id),
+                } : {})}
               />
-            ))}
-          </>
-        )
+            </View>
+          ))}
+        </View>
       )}
     </View>
   );

@@ -30,8 +30,8 @@ export default function HomeScreen({ navigation }: Props) {
   const [workshopsCount, setWorkshopsCount] = useState(0);
   const [studentsCount, setStudentsCount] = useState(0);
   const [activitiesCount, setActivitiesCount] = useState(0);
-  const [evaluationsThisWeek, setEvaluationsThisWeek] = useState(4);
-  const [classesThisWeek, setClassesThisWeek] = useState(8);
+  const [evaluationsThisWeek, setEvaluationsThisWeek] = useState(0);
+  const [classesThisWeek, setClassesThisWeek] = useState(0);
   // Picker de clase para asistencia
   const [coursePickerOpen, setCoursePickerOpen] = useState(false);
   const [coursePickerLoading, setCoursePickerLoading] = useState(false);
@@ -95,10 +95,7 @@ export default function HomeScreen({ navigation }: Props) {
             <Text style={[styles.subtitle, { color: palette.textSecondary }]}>tu rol es: {getRole}</Text>
           </View>
         </View>
-        <TouchableOpacity style={styles.notificationButton} onPress={handleLogout}>
-          <MaterialCommunityIcons name="bell" size={20} color="#fff" />
-          <View style={styles.notificationDot} />
-        </TouchableOpacity>
+        {/* Campana removida del header según solicitud */}
       </View>
     </View>
   );

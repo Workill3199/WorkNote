@@ -15,6 +15,8 @@ export interface SelectedFile {
   name: string;
   size?: number;
   type?: string;
+  // Web only: mantener referencia al File para subir directamente
+  fileRef?: File;
 }
 
 interface FileUploadProps {
@@ -43,6 +45,7 @@ export function FileUpload({
           name: f.name,
           size: f.size,
           type: f.type,
+          fileRef: f,
         })
       );
 
