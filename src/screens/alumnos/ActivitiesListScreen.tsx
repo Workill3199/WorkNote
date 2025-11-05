@@ -14,21 +14,19 @@ import { useTheme } from "@react-navigation/native";
 import { darkColors } from "../../theme/colors";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import {
-  listActivities,
   Activity,
   deleteActivity,
   listActivitiesByCourse,
   listActivitiesByWorkshop,
   updateActivity,
 } from "../../services/activities";
-import ManagementCard from "../../components/ManagementCard";
 import NeonButton from "../../components/NeonButton";
 import { listCourses, Course } from "../../services/courses";
 import { auth } from "../../config/firebase";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { getDownloadURL, ref } from "firebase/storage";
 import { storage } from "../../config/firebase";
-import { File, Directory } from "expo-file-system";
+import { Directory, File, Paths } from 'expo-file-system';
 
 type Props = NativeStackScreenProps<any>;
 
@@ -70,21 +68,13 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
   } as const;
   const HEX = T;
 
-  const handleDownload = async (url: string, filename: string) => {
+  const handleDownload = async (url: string) => {
+    const destination = new Directory(Paths.document, 'activities');
     try {
-      // Crear directorio temporal
-      const downloadsDir =
-        await Directory.documentDirectory.createDirectoryAsync("downloads", {
-          intermediates: true,
-        });
-      const localUri = `${downloadsDir.path}/${filename}`;
+      destination.create();
+      const output = await File.downloadFileAsync(url, destination);
+      Alert.alert("Success", `El archivo se guardo en: ${output.uri}`);
 
-      // Descargar usando la nueva API
-      const file = new File({ uri: localUri });
-      await file.downloadAsync(url);
-
-      Alert.alert("Descarga completada", `Archivo guardado en: ${localUri}`);
-      return localUri;
     } catch (err) {
       console.error("Error al descargar archivo:", err);
       Alert.alert("Error", "No se pudo descargar el archivo.");
@@ -259,21 +249,6 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
     } catch (e) {}
   };
 
-  const onDelete = async (id?: string) => {
-    if (!id) return;
-    Alert.alert("Eliminar actividad", "¿Seguro que deseas eliminarla?", [
-      { text: "Cancelar" },
-      {
-        text: "Eliminar",
-        style: "destructive",
-        onPress: async () => {
-          await deleteActivity(id);
-          load();
-        },
-      },
-    ]);
-  };
-
   // filterCourseId definido arriba para evitar TDZ al usarlo en useMemo
   const selectedCourse = useMemo(
     () => courses.find((c) => c.id === filterCourseId),
@@ -281,27 +256,6 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
   );
   const isOwner =
     (selectedCourse?.ownerId ?? "") === (auth?.currentUser?.uid || "");
-
-  // Normaliza URLs antiguas de Storage con formato REST `o?name=` y devuelve `getDownloadURL`
-  const resolveAttachmentUrl = async (att: {
-    url: string;
-  }): Promise<string | undefined> => {
-    const u = att?.url || "";
-    try {
-      if (u.includes("/o?name=")) {
-        const urlObj = new URL(u);
-        const rawName = urlObj.searchParams.get("name") || "";
-        const path = decodeURIComponent(rawName);
-        const r = ref(storage, path);
-        const fixed = await getDownloadURL(r);
-        return fixed;
-      }
-      return u;
-    } catch {
-      // Si no podemos convertir el URL legacy, devolvemos undefined para evitar solicitar `o?name=`
-      return undefined;
-    }
-  };
 
   return (
     <View style={[styles.container, { backgroundColor: T.bg }]}>
@@ -711,7 +665,7 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
                         try {
                           const att = (item as any)?.attachments?.[0];
                           if (!att?.url) return;
-                          const url = await resolveAttachmentUrl(att);
+                          const url = await handleDownload(att);
                           if (!url) {
                             Alert.alert(
                               "Aviso",
@@ -719,10 +673,8 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
                             );
                             return;
                           }
-                          const filename = att.name || `archivo_${Date.now()}`;
-                          await handleDownload(url, filename);
+                          await handleDownload(url);
                           Alert.alert("Aviso", url);
-                          Alert.alert("Aviso", filename);
                         } catch {
                           Alert.alert(
                             "Aviso",
