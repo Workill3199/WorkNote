@@ -1,3 +1,6 @@
+// Ítem de lista/tarjeta para estudiantes.
+// - Dos variantes: 'row' (lista) y 'tile' (tarjeta para grid/web).
+// - Muestra avatar con iniciales, nombre, email (si disponible), progreso y estado.
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -5,6 +8,7 @@ import { darkColors } from '../theme/colors';
 import { fonts } from '../theme/typography';
 import { Platform } from 'react-native';
 
+// Props del componente: datos del estudiante y callbacks.
 type Props = {
   name: string;
   email?: string;
@@ -16,6 +20,7 @@ type Props = {
 };
 
 export default function StudentListItem({ name, email, progress = 0, status = 'Activo', classLabel = 'A', variant = 'row', onPress }: Props) {
+  // Genera iniciales a partir del nombre para el avatar.
   const initials = name
     .split(' ')
     .map((n) => n[0])
@@ -23,6 +28,7 @@ export default function StudentListItem({ name, email, progress = 0, status = 'A
     .toUpperCase()
     .slice(0, 2);
 
+  // Variante 'tile': tarjeta con avatar, clase y barra de progreso.
   if (variant === 'tile') {
     return (
       <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={styles.touch}>
@@ -52,6 +58,7 @@ export default function StudentListItem({ name, email, progress = 0, status = 'A
     );
   }
 
+  // Variante 'row': ítem de lista con email (opcional), progreso y estado.
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.touch}>
       <View style={styles.card}>

@@ -1,3 +1,5 @@
+// Perfil de usuario (raíz).
+// Muestra datos básicos del alumno y sus clases unidas.
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Platform } from 'react-native';
 import { useTheme } from '@react-navigation/native';
@@ -11,7 +13,7 @@ import { darkColors } from '../theme/colors';
 type Props = NativeStackScreenProps<any>;
 
 export default function UserProfileScreen({ route }: Props) {
-  const { colors } = useTheme() as any;
+  const { colors } = useTheme() as any; // paleta de colores actual
   const student = (route as any)?.params?.student as Student | undefined;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -21,6 +23,7 @@ export default function UserProfileScreen({ route }: Props) {
   const initials = useMemo(() => name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'U', [name]);
 
   useEffect(() => {
+    // Carga clases asociadas al email del usuario desde la colección students
     (async () => {
       if (!student?.email) {
         setLoading(false);
@@ -50,7 +53,7 @@ export default function UserProfileScreen({ route }: Props) {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.background }} contentContainerStyle={styles.container}>
-      {/* Header estilo público (avatar grande con gradiente) */}
+      {/* Encabezado tipo perfil público: avatar con iniciales y estado */}
       <View style={styles.headerWrap}>
         <View style={[styles.avatarWrap, { borderColor: colors.border, shadowColor: colors.text }] }>
           {Platform.OS === 'web' ? (
@@ -67,7 +70,7 @@ export default function UserProfileScreen({ route }: Props) {
         <Text style={[styles.userName, { color: colors.text }]}>{name.toUpperCase()}</Text>
       </View>
 
-      {/* Información de contacto */}
+      {/* Tarjeta de información de contacto */}
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }] }>
         <View style={styles.row}>
           <View style={styles.rowLeft}>
@@ -94,7 +97,7 @@ export default function UserProfileScreen({ route }: Props) {
         </View>
       </View>
 
-      {/* Clases unidas */}
+      {/* Clases unidas del usuario */}
       <Text style={[styles.sectionTitle, { color: colors.text }]}>CLASES UNIDAS</Text>
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }] }>
         {loading && <ActivityIndicator color={colors.primary} style={{ marginVertical: 16 }} />}

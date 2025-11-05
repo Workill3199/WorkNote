@@ -1,5 +1,8 @@
+// Listado de actividades para profesores.
+// Permite filtrar, marcar como completada, eliminar y navegar.
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, TextInput, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, TextInput, Platform, ScrollView } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@react-navigation/native';
 import { darkColors } from '../../theme/colors';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -13,21 +16,23 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 type Props = NativeStackScreenProps<any>;
 
 export default function ActivitiesListScreen({ navigation, route }: Props) {
-  const { colors } = useTheme();
-  const [items, setItems] = useState<Activity[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [codeOpen, setCodeOpen] = useState(false);
-  const [codeBusy, setCodeBusy] = useState(false);
-  const [codeValue, setCodeValue] = useState('');
-  const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState<'Todas' | 'Pendientes' | 'Completadas' | 'Vencidas' | 'Alta' | 'Media' | 'Baja'>('Todas');
-  const courseTitleById = useMemo(() => Object.fromEntries(courses.map(c => [c.id!, c.title])), [courses]);
-  const filterCourseId = (route as any)?.params?.filterCourseId as string | undefined;
-  const selectedCourse = useMemo(() => courses.find(c => c.id === filterCourseId), [courses, filterCourseId]);
+  const { colors } = useTheme(); // Colores del tema activo
+  const insets = useSafeAreaInsets();
+  const [items, setItems] = useState<Activity[]>([]); // Lista de actividades
+  const [loading, setLoading] = useState(true); // Indicador de carga
+  const [error, setError] = useState<string | null>(null); // Errores de carga
+  const [courses, setCourses] = useState<Course[]>([]); // Cursos para mostrar asignación y código
+  const [codeOpen, setCodeOpen] = useState(false); // Popup de código de clase
+  const [codeBusy, setCodeBusy] = useState(false); // Indicador de obtención de código
+  const [codeValue, setCodeValue] = useState(''); // Valor del código
+  const [query, setQuery] = useState(''); // Texto de búsqueda
+  const [filter, setFilter] = useState<'Todas' | 'Pendientes' | 'Completadas' | 'Vencidas' | 'Alta' | 'Media' | 'Baja'>('Todas'); // Filtro activo
+  const courseTitleById = useMemo(() => Object.fromEntries(courses.map(c => [c.id!, c.title])), [courses]); // Mapa id->título
+  const filterCourseId = (route as any)?.params?.filterCourseId as string | undefined; // Filtro por curso
+  const selectedCourse = useMemo(() => courses.find(c => c.id === filterCourseId), [courses, filterCourseId]); // Curso seleccionado
 
   // Tokens portados desde "actividades" basados en el tema oscuro
+  // Tokens de color locales (tema oscuro por defecto)
   const T = {
     bg: darkColors.background,
     card: darkColors.card,
@@ -43,6 +48,7 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
   } as const;
   const HEX = T;
 
+  // Carga actividades según filtro por curso/taller
   const load = async () => {
     setError(null);
     setLoading(true);
@@ -65,17 +71,19 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
     }
   };
 
+  // Recarga cuando la pantalla gana foco
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', load);
     return unsubscribe;
   }, [navigation]);
 
   useEffect(() => {
-    // Cargar nombres de cursos para mostrar asignaciones
+    // Carga nombres de cursos para mostrar asignaciones y códigos
     listCourses().then(setCourses).catch(() => setCourses([]));
   }, []);
 
   // Info de vencimiento para estilos y filtro "Vencidas"
+  // Cálculo de vencimiento para estilos y filtro "Vencidas"
   const getDueInfo = (due?: string, completed?: boolean): { kind?: 'overdue' | 'today' | 'tomorrow' | 'date'; label?: string } => {
     if (!due) return {};
     try {
@@ -94,6 +102,7 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
     }
   };
 
+  // Filtra por texto y estado (pendiente/completada/vencida)
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return items.filter((item) => {
@@ -113,6 +122,7 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
     });
   }, [items, query, filter]);
 
+  // Marca/desmarca una actividad como completada
   const toggleCompleted = async (id?: string, current?: boolean) => {
     if (!id) return;
     try {
@@ -121,6 +131,7 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
     } catch (e) {}
   };
 
+  // Elimina actividad (con confirmación) y recarga
   const onDelete = async (id?: string) => {
     if (!id) return;
     Alert.alert('Eliminar actividad', '¿Seguro que deseas eliminarla?', [
@@ -130,7 +141,13 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: T.bg } ]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: T.bg }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={[styles.container, { paddingTop: Math.max(insets.top, 8), paddingBottom: 24 }]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <MaterialCommunityIcons name="clipboard-list" size={18} color={T.text} />
@@ -193,7 +210,7 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
             textStyle={styles.addText}
           />
       </View>
-    </View>
+      </View>
 
     {/* Popup de código de clase */}
     {codeOpen && (
@@ -330,12 +347,23 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
                   </View>
                 </View>
               )}
-
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 10 }}>
+                <TouchableOpacity
+                  onPress={() => {
+                    const courseId = filterCourseId || item.courseId || ((item.courseIds || [])[0] || '');
+                    (navigation as any).navigate('ActivitySubmissions', { activityId: item.id, courseId, activityTitle: item.title });
+                  }}
+                  activeOpacity={0.9}
+                  style={[styles.addBtn, { backgroundColor: T.primary }]}>
+                  <Text style={styles.addText}>Revisar entregas</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         );
       })}
-    </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 

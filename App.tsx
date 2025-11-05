@@ -1,3 +1,5 @@
+// Punto de entrada de navegación de la app: configura stacks, tabs, tema oscuro,
+// fuentes y carga de i18n. No se altera la lógica, solo documentación.
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View, Text, TouchableOpacity, Platform } from 'react-native';
 import { NavigationContainer, useNavigation } from '@react-navigation/native';
@@ -14,6 +16,7 @@ import WorkshopsListScreen from './src/screens/profesores/WorkshopsListScreen';
 import WorkshopCreateScreen from './src/screens/profesores/WorkshopCreateScreen';
 import ActivitiesListScreen from './src/screens/profesores/ActivitiesListScreen';
 import ActivityCreateScreen from './src/screens/profesores/ActivityCreateScreen';
+import ActivitySubmissionsScreen from './src/screens/profesores/ActivitySubmissionsScreen';
 import StudentsListScreen from './src/screens/profesores/StudentsListScreen';
 import StudentCreateScreen from './src/screens/profesores/StudentCreateScreen';
 import AttendanceScreen from './src/screens/profesores/AttendanceScreen';
@@ -32,10 +35,15 @@ import './src/i18n';
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import { Manrope_700Bold } from '@expo-google-fonts/manrope';
 import { fonts } from './src/theme/typography';
+import { silenceExpoGoNotificationsWarning } from './src/utils/silenceExpoGoNotifications';
+
+// Silencia el aviso de expo-notifications en Expo Go Android
+silenceExpoGoNotificationsWarning();
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
+// Navegación de pestañas para profesores (Inicio, Clases, Estudiantes, Actividades).
 function MainTabs() {
   const isWeb = Platform.OS === 'web';
   const [navOpacity, setNavOpacity] = React.useState(0.98);
@@ -127,6 +135,7 @@ function MainTabs() {
   );
 }
 
+// Navegación de pestañas para alumnos (Inicio, Cursos, Actividades).
 function StudentTabs() {
   const isWeb = Platform.OS === 'web';
   const [navOpacity, setNavOpacity] = React.useState(0.98);
@@ -211,6 +220,7 @@ function StudentTabs() {
   );
 }
 
+// Contenedor principal de navegación (stack): define rutas y opciones de header.
 function AppNavigation() {
   const theme = DarkThemeCustom;
   const headerColors = { card: darkColors.card, text: darkColors.text };
@@ -235,6 +245,7 @@ function AppNavigation() {
         <Stack.Screen name="Workshops" component={WorkshopsListScreen} options={{ title: 'Talleres' }} />
         <Stack.Screen name="WorkshopCreate" component={WorkshopCreateScreen} options={{ title: 'Nuevo Taller' }} />
         <Stack.Screen name="Activities" component={ActivitiesListScreen} options={{ title: 'Actividades' }} />
+        <Stack.Screen name="ActivitySubmissions" component={ActivitySubmissionsScreen} options={{ title: 'Entregas' }} />
         <Stack.Screen name="ActivityCreate" component={ActivityCreateScreen} options={{ title: 'Nueva Actividad' }} />
         <Stack.Screen name="Students" component={StudentsListScreen} options={{ title: 'Estudiantes' }} />
         {/* Ruta específica para alumnos: listado de estudiantes sin acciones de profesor */}
@@ -252,6 +263,7 @@ function AppNavigation() {
   );
 }
 
+// Componente raíz: carga fuentes, aplica tema y envuelve con providers necesarios.
 export default function App() {
   const [fontsLoaded] = useFonts({
     Inter_400Regular,

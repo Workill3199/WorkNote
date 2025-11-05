@@ -1,3 +1,5 @@
+// Listado de estudiantes para profesores.
+// Permite buscar, filtrar por clase/curso, navegar a perfil y registrar.
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, TextInput, Platform } from 'react-native';
 import { useTheme } from '@react-navigation/native';
@@ -12,7 +14,7 @@ import { darkColors } from '../../theme/colors';
 type Props = NativeStackScreenProps<any>;
 
 export default function StudentsListScreen({ navigation, route }: Props) {
-  const { colors } = useTheme() as any;
+  const { colors } = useTheme() as any; // paleta del tema
   const [items, setItems] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,8 +22,9 @@ export default function StudentsListScreen({ navigation, route }: Props) {
   const [selectedCourseId, setSelectedCourseId] = useState<string>('');
   const [courses, setCourses] = useState<Course[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
-  const filterCourseId = (route as any)?.params?.filterCourseId as string | undefined;
+  const filterCourseId = (route as any)?.params?.filterCourseId as string | undefined; // curso sugerido desde navegación
 
+  // Carga/recarga del listado (considera filtros recibidos por ruta)
   const load = async () => {
     setError(null);
     setLoading(true);
@@ -45,14 +48,17 @@ export default function StudentsListScreen({ navigation, route }: Props) {
   };
 
   useEffect(() => {
+    // Recargar al volver a enfocar la pantalla
     const unsubscribe = navigation.addListener('focus', load);
     return unsubscribe;
   }, [navigation]);
 
   useEffect(() => {
+    // Cargar cursos para mostrar chips de filtro
     listCourses().then(setCourses).catch(() => setCourses([]));
   }, []);
 
+  // Eliminar estudiante con confirmación y refrescar
   const onDelete = async (id?: string) => {
     if (!id) return;
     Alert.alert('Eliminar estudiante', '¿Seguro que deseas eliminarlo?', [
@@ -61,6 +67,7 @@ export default function StudentsListScreen({ navigation, route }: Props) {
     ]);
   };
 
+  // Filtro en memoria: por texto (nombre/email) y curso seleccionado
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return items.filter((s) => {
@@ -72,7 +79,7 @@ export default function StudentsListScreen({ navigation, route }: Props) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }] }>
-      {/* Header estilo dashboard */}
+      {/* Header estilo dashboard: título + acciones rápidas */}
       <View style={[styles.header, { borderBottomColor: darkColors.border }] }>
         <Text style={[styles.title, { color: colors.text }]}>Estudiantes</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -113,7 +120,7 @@ export default function StudentsListScreen({ navigation, route }: Props) {
       </View>
     </View>
 
-      {/* Mini menú de clases */}
+      {/* Mini menú de clases (chips de filtro por curso) */}
       <View style={styles.filtersRow}>
         <TouchableOpacity onPress={() => setMenuOpen(v => !v)} style={[styles.chip, menuOpen && styles.chipActive]} activeOpacity={0.8}>
           <Text style={[styles.chipText, menuOpen && styles.chipTextActive]}>{selectedCourseId ? (courses.find(c => c.id === selectedCourseId)?.title ?? 'Clase seleccionada') : 'Filtrar por clase'}</Text>

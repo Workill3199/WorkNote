@@ -9,7 +9,10 @@ import {
   TextInput,
   Platform,
   Linking,
-} from "react-native";
+  Modal,
+  ScrollView,
+  } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@react-navigation/native";
 import { darkColors } from "../../theme/colors";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -25,12 +28,16 @@ import { listCourses, Course } from "../../services/courses";
 import { auth } from "../../config/firebase";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { getDownloadURL, ref } from "firebase/storage";
-import { storage } from "../../config/firebase";
-import { Directory, File, Paths } from 'expo-file-system';
+  import { storage } from "../../config/firebase";
+  import { createSubmission, updateSubmission } from "../../services/submissions";
+  import { uploadBytes, getDownloadURL as getURL } from "firebase/storage";
+import * as FileSystem from "expo-file-system"; // Fallback para leer archivos locales en móvil
+  import { FileUpload } from "../../components/files";
 
 type Props = NativeStackScreenProps<any>;
 
 export default function ActivitiesListScreen({ navigation, route }: Props) {
+  const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const [items, setItems] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,9 +52,7 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
     [courses]
   );
   // Filtro manual por clase cuando vienes desde la pestaña Actividades
-  const [courseFilterId, setCourseFilterId] = useState<string | undefined>(
-    (route as any)?.params?.filterCourseId
-  );
+  const [courseFilterId, setCourseFilterId] = useState<string | undefined | null>((route as any)?.params?.filterCourseId);
   // Controla el despliegue del filtrador adicional de clases
   const [showClassFilter, setShowClassFilter] = useState(false);
   // Los alumnos no generan códigos; solo el profesor puede hacerlo.
@@ -67,14 +72,46 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
     prioLow: darkColors.success,
   } as const;
   const HEX = T;
+  // Estado para entrega de actividad (modal)
+  const [submitOpen, setSubmitOpen] = useState(false);
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+  const [submitTitle, setSubmitTitle] = useState('');
+  const [submitDesc, setSubmitDesc] = useState('');
+  const [pendingFiles, setPendingFiles] = useState<any[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const handleDownload = async (url: string) => {
-    const destination = new Directory(Paths.document, 'activities');
+  const handleDownload = async (url: string, filename: string) => {
     try {
-      destination.create();
-      const output = await File.downloadFileAsync(url, destination);
-      Alert.alert("Success", `El archivo se guardo en: ${output.uri}`);
+      // Web: usar descarga directa por <a download>
+      if (Platform.OS === 'web') {
+        try {
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename || 'archivo';
+          a.style.display = 'none';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          Alert.alert('Descarga iniciada');
+          return url;
+        } catch {}
+      }
 
+      // Nativo: crear directorio de descargas dentro del sandbox de la app
+      // Preferimos cacheDirectory (siempre tipado) y luego documentDirectory con cast para evitar error TS
+      const baseDir = ((FileSystem as any).cacheDirectory as string | null) || (FileSystem as any).documentDirectory || '';
+      const downloadsDir = `${baseDir}downloads`;
+      try {
+        await FileSystem.makeDirectoryAsync(downloadsDir, { intermediates: true });
+      } catch {}
+      const localUri = `${downloadsDir}/${filename}`;
+
+      // Descargar usando expo-file-system
+      await FileSystem.downloadAsync(url, localUri);
+
+      Alert.alert("Descarga completada", `Archivo guardado en: ${localUri}`);
+      return localUri;
     } catch (err) {
       console.error("Error al descargar archivo:", err);
       Alert.alert("Error", "No se pudo descargar el archivo.");
@@ -131,10 +168,11 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
               atts.map(async (a: any) => {
                 if (typeof a?.url === "string" && a.url.includes("/o?name=")) {
                   try {
+                    if (!storage) return a; // storage no disponible
                     const urlObj = new URL(a.url);
                     const rawName = urlObj.searchParams.get("name") || "";
                     const path = decodeURIComponent(rawName);
-                    const r = ref(storage, path);
+                    const r = ref(storage!, path);
                     const newUrl = await getDownloadURL(r);
                     return { ...a, url: newUrl };
                   } catch {
@@ -207,10 +245,8 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
   useEffect(() => {
     setCourseFilterId(filterCourseId);
   }, [filterCourseId]);
-  const filterWorkshopId = (route as any)?.params?.filterWorkshopId as
-    | string
-    | undefined;
-  const effectiveCourseId = courseFilterId || filterCourseId;
+  const filterWorkshopId = (route as any)?.params?.filterWorkshopId as string | undefined;
+  const effectiveCourseId = (courseFilterId === null) ? undefined : (courseFilterId || filterCourseId);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return items.filter((item) => {
@@ -224,6 +260,9 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
       if (filterWorkshopId) {
         if ((item.workshopId || "") !== filterWorkshopId) return false;
       }
+      // Excluir actividades de asistencia para alumnos
+      const cat = (item.category ?? "").toLowerCase();
+      if (cat === "asistencia") return false;
       // Mostrar todas las categorías, incluida "Asistencia"
       const matchesText =
         (item.title ?? "").toLowerCase().includes(q) ||
@@ -257,8 +296,103 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
   const isOwner =
     (selectedCourse?.ownerId ?? "") === (auth?.currentUser?.uid || "");
 
+  // Normaliza URLs antiguas de Storage con formato REST `o?name=` y devuelve `getDownloadURL`
+  const resolveAttachmentUrl = async (att: {
+    url: string;
+  }): Promise<string | undefined> => {
+    const u = att?.url || "";
+    try {
+      if (u.includes("/o?name=")) {
+        if (!storage) return undefined;
+        const urlObj = new URL(u);
+        const rawName = urlObj.searchParams.get("name") || "";
+        const path = decodeURIComponent(rawName);
+        const r = ref(storage!, path);
+        const fixed = await getDownloadURL(r);
+        return fixed;
+      }
+      return u;
+    } catch {
+      // Si no podemos convertir el URL legacy, devolvemos undefined para evitar solicitar `o?name=`
+      return undefined;
+    }
+  };
+
+  const openSubmit = (activity: Activity) => {
+    setSelectedActivity(activity);
+    setSubmitTitle('');
+    setSubmitDesc('');
+    setPendingFiles([]);
+    setSubmitError(null);
+    setSubmitOpen(true);
+  };
+
+  const uploadSubmissionFiles = async (submissionId: string) => {
+    if (!storage || !pendingFiles.length) return [] as { name: string; url: string; contentType?: string; size?: number }[];
+    const uploaded: { name: string; url: string; contentType?: string; size?: number }[] = [];
+    for (const f of pendingFiles as any[]) {
+      try {
+        const name: string = String((f?.name ?? `archivo-${Date.now()}`)).replace(/[^A-Za-z0-9._-]/g, '_');
+        const path = `submissions/${submissionId}/${Date.now()}-${name}`;
+        const r = ref(storage, path);
+        // Preferir File (web) si está disponible; si no, obtener Blob desde uri
+        let toUpload: Blob;
+        if (f?.fileRef) {
+          toUpload = f.fileRef as Blob;
+        } else {
+          try {
+            const res = await fetch(String(f?.uri ?? ''));
+            toUpload = await res.blob();
+          } catch (err) {
+            // Fallback móvil: leer como base64 y convertir a Blob vía data URL
+            const base64 = await FileSystem.readAsStringAsync(String(f?.uri ?? ''), { encoding: 'base64' });
+            const dataUrl = `data:${f?.type || 'application/octet-stream'};base64,${base64}`;
+            const res2 = await fetch(dataUrl);
+            toUpload = await res2.blob();
+          }
+        }
+        await uploadBytes(r, toUpload, { contentType: f?.type });
+        const url = await getURL(r);
+        uploaded.push({ name, url, contentType: f?.type, size: f?.size });
+      } catch (e) {
+        // Continúa en caso de error individual
+      }
+    }
+    return uploaded;
+  };
+
+  const onSubmitActivity = async () => {
+    if (!selectedActivity?.id) return;
+    setSubmitError(null);
+    setSubmitting(true);
+    try {
+      const activityId = selectedActivity.id!;
+      const courseId = effectiveCourseId || selectedActivity.courseId || (selectedActivity.courseIds || [])[0] || '';
+      const submissionId = await createSubmission({ activityId, courseId, title: submitTitle.trim() || '', description: submitDesc.trim() || '' });
+      if (pendingFiles.length) {
+        const uploaded = await uploadSubmissionFiles(submissionId);
+        if (uploaded.length) {
+          await updateSubmission(submissionId, { attachments: uploaded as any });
+        }
+      }
+      setSubmitOpen(false);
+      setSelectedActivity(null);
+      Alert.alert('Entrega realizada', 'Tu entrega fue registrada correctamente.');
+    } catch (e: any) {
+      setSubmitError(e?.message ?? 'Error al entregar actividad');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
-    <View style={[styles.container, { backgroundColor: T.bg }]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: T.bg }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={[styles.container, { paddingTop: Math.max(insets.top, 8), paddingBottom: 24 }]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <MaterialCommunityIcons
@@ -348,28 +482,26 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
             </TouchableOpacity>
           );
         })}
-        {/* Botón para desplegar el filtrador de clases */}
-        {!filterCourseId && (
-          <TouchableOpacity
-            onPress={() => setShowClassFilter((v) => !v)}
+        {/* Botón para desplegar el filtrador de clases (siempre visible) */}
+        <TouchableOpacity
+          onPress={() => setShowClassFilter((v) => !v)}
+          style={[
+            styles.chip,
+            showClassFilter && styles.chipActive,
+            { borderColor: T.accent },
+          ]}
+          activeOpacity={0.8}
+        >
+          <Text
             style={[
-              styles.chip,
-              showClassFilter && styles.chipActive,
-              { borderColor: T.accent },
+              styles.chipText,
+              showClassFilter && styles.chipTextActive,
+              { color: showClassFilter ? T.bg : T.text },
             ]}
-            activeOpacity={0.8}
           >
-            <Text
-              style={[
-                styles.chipText,
-                showClassFilter && styles.chipTextActive,
-                { color: showClassFilter ? T.bg : T.text },
-              ]}
-            >
-              Clases
-            </Text>
-          </TouchableOpacity>
-        )}
+            Clases
+          </Text>
+        </TouchableOpacity>
         {/* Resto de estados */}
         {(["Pendientes", "Completadas", "Vencidas"] as const).map((f) => {
           const active = filter === f;
@@ -399,7 +531,7 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
       </View>
 
       {/* Popup de clases: aparece debajo del filtrador */}
-      {!filterCourseId && showClassFilter && (
+      {showClassFilter && (
         <View
           style={[
             styles.menu,
@@ -417,7 +549,9 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
             <TouchableOpacity
               key={(item.id ?? "all") + ""}
               onPress={() => {
-                setCourseFilterId(item.id);
+                // Cuando el usuario elige "Todas las clases" limpiamos filtro local
+                // y anulamos cualquier filtro llegado por ruta usando null.
+                setCourseFilterId(item.id ?? null);
                 setShowClassFilter(false);
               }}
               style={[
@@ -449,9 +583,10 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
         </Text>
       )}
 
-      {/* Tarjetas estilo glassmorphism */}
-      {!loading &&
-        filtered.map((item) => {
+      {/* Tarjetas estilo glassmorphism (scrollable) */}
+      {!loading && (
+        <>
+        {filtered.map((item) => {
           const prioColor =
             item.priority === "alta"
               ? HEX.prioHigh
@@ -519,8 +654,25 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
                       color={T.accent}
                     />
                   </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => openSubmit(item)}
+                    style={[
+                      styles.badge,
+                      {
+                        backgroundColor: "transparent",
+                        borderColor: T.accent,
+                        marginLeft: 8,
+                      },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="send"
+                      size={14}
+                      color={T.accent}
+                    />
+                    <Text style={[styles.badgeText, { color: T.accent }]}>Entregar</Text>
+                  </TouchableOpacity>
                 </View>
-
                 {!!item.description && (
                   <Text style={[styles.cardDesc, { color: HEX.textMuted }]}>
                     {item.description}
@@ -705,7 +857,68 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
             </View>
           );
         })}
-    </View>
+        </>
+      )}
+
+      {/* Modal de entrega de actividad */}
+      <Modal
+        visible={submitOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSubmitOpen(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <View style={{ width: "100%", maxWidth: 520, borderRadius: 14, borderWidth: 1, padding: 16, backgroundColor: HEX.card, borderColor: T.border }}>
+            <Text style={{ fontSize: 16, fontWeight: "700", color: HEX.text }}>Entregar actividad</Text>
+            {!!selectedActivity && (
+              <Text style={{ fontSize: 12, marginTop: 4, color: HEX.textMuted }}>Actividad: {selectedActivity.title}</Text>
+            )}
+
+            <TextInput
+              placeholder="Título de la entrega (opcional)"
+              value={submitTitle}
+              onChangeText={setSubmitTitle}
+              placeholderTextColor={HEX.textMuted}
+              style={{ borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: Platform.OS === "web" ? 10 : 8, marginTop: 10, color: HEX.text, borderColor: T.border }}
+            />
+            <TextInput
+              placeholder="Descripción (opcional)"
+              value={submitDesc}
+              onChangeText={setSubmitDesc}
+              placeholderTextColor={HEX.textMuted}
+              style={{ borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: Platform.OS === "web" ? 10 : 8, marginTop: 10, color: HEX.text, borderColor: T.border }}
+              multiline
+            />
+
+            <View style={{ marginTop: 12 }}>
+              <FileUpload onFilesSelected={(files) => setPendingFiles(files)} />
+            </View>
+
+            {!!submitError && (
+              <Text style={{ color: HEX.prioHigh, marginTop: 8 }}>{submitError}</Text>
+            )}
+
+            <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: 12 }}>
+              <TouchableOpacity onPress={() => setSubmitOpen(false)} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: T.border }}>
+                <Text style={{ fontSize: 12, fontWeight: "700", color: HEX.text }}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={onSubmitActivity}
+                disabled={submitting}
+                style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: T.accent, marginLeft: 8, backgroundColor: submitting ? "transparent" : "rgba(96,165,250,0.15)" }}
+              >
+                {submitting ? (
+                  <ActivityIndicator color={T.accent} />
+                ) : (
+                  <Text style={{ fontSize: 12, fontWeight: "700", color: T.accent }}>Entregar</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 

@@ -1,3 +1,5 @@
+// Formulario de creación/edición de estudiante para profesores.
+// Incluye validaciones con Zod, selección de clase y guardado en Firestore.
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import { useTheme } from '@react-navigation/native';
@@ -11,9 +13,10 @@ import NeonButton from '../../components/NeonButton';
 type Props = NativeStackScreenProps<any>;
 
 export default function StudentCreateScreen({ navigation, route }: Props) {
-  const { colors } = useTheme();
-  const { t } = useTranslation();
+  const { colors } = useTheme(); // colores del tema
+  const { t } = useTranslation(); // i18n
   const editItem = (route as any)?.params?.editItem as Student | undefined;
+  // Estados del formulario
   const [firstName, setFirstName] = useState(editItem?.firstName || '');
   const [lastName, setLastName] = useState(editItem?.lastName || '');
   const [email, setEmail] = useState(editItem?.email || '');
@@ -25,10 +28,12 @@ export default function StudentCreateScreen({ navigation, route }: Props) {
   const [courses, setCourses] = useState<Course[]>([]);
   const [courseMenuOpen, setCourseMenuOpen] = useState(false);
 
+  // Cargar cursos para el selector de clase
   useEffect(() => {
     listCourses().then(setCourses).catch(() => setCourses([]));
   }, []);
 
+  // Validaciones de datos del estudiante
   const studentSchema = z.object({
     firstName: z.string().trim().min(1, t('Validation.firstNameRequired')),
     lastName: z.string().trim().optional(),
@@ -38,6 +43,7 @@ export default function StudentCreateScreen({ navigation, route }: Props) {
     workshopId: z.string().trim().optional(),
   });
 
+  // Guarda cambios: crea o actualiza estudiante
   const onSave = async () => {
     setError(null);
     const parsed = studentSchema.safeParse({ firstName, lastName, email, classLabel: classLabel as 'A' | 'B' | 'C' | 'D', courseId, workshopId });
@@ -73,7 +79,7 @@ export default function StudentCreateScreen({ navigation, route }: Props) {
           workshopId: data.workshopId || undefined,
         });
       }
-      navigation.goBack();
+      navigation.goBack(); // volver al listado
     } catch (e: any) {
       setError(e?.message ?? (editItem?.id ? t('Validation.invalidData') : t('Validation.invalidData')));
     } finally {
@@ -114,7 +120,7 @@ export default function StudentCreateScreen({ navigation, route }: Props) {
         onChangeText={setEmail}
       />
 
-      {/* Selector de clase */}
+      {/* Selector rápido de clase (A/B/C/D) */}
       <Text style={[styles.label, { color: colors.text }]}>Clase</Text>
       <View style={styles.chipRow}>
         {(['A','B','C','D'] as const).map((c) => (
@@ -129,6 +135,7 @@ export default function StudentCreateScreen({ navigation, route }: Props) {
         ))}
       </View>
 
+      {/* Selector de curso (obligatorio) */}
       <Text style={[styles.label, { color: colors.text }]}>Clase (obligatoria)</Text>
       <View style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border }]}> 
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -162,6 +169,7 @@ export default function StudentCreateScreen({ navigation, route }: Props) {
           onChangeText={setWorkshopId}
         />
 
+        {/* Acción de guardar */}
         <NeonButton title={editItem?.id ? t('Common.update') : t('Common.save')} onPress={onSave} colors={colors} loading={loading} style={styles.button} textStyle={styles.buttonText} />
       </View>
     </View>

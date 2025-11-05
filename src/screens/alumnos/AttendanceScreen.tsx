@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform, 
 import { useTheme } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Student, listStudentsByCourse } from '../../services/students';
-import { createActivity, listActivitiesByCourse, Activity } from '../../services/activities';
+import { createAttendanceRecord, listAttendanceRecords, AttendanceRecord } from '../../services/attendance';
 import { listCourses, Course } from '../../services/courses';
 import { darkColors } from '../../theme/colors';
 import NeonButton from '../../components/NeonButton';
@@ -23,9 +23,9 @@ export default function AttendanceScreen({ navigation, route }: Props) {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyDate, setHistoryDate] = useState<string>('');
   const [historyInput, setHistoryInput] = useState<string>('');
-  const [historyItems, setHistoryItems] = useState<Activity[]>([]);
+  const [historyItems, setHistoryItems] = useState<AttendanceRecord[]>([]);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [selectedHistory, setSelectedHistory] = useState<Activity | null>(null);
+  const [selectedHistory, setSelectedHistory] = useState<AttendanceRecord | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [calYear, setCalYear] = useState<number>(new Date().getFullYear());
   const [calMonth, setCalMonth] = useState<number>(new Date().getMonth()); // 0-11
@@ -78,18 +78,11 @@ export default function AttendanceScreen({ navigation, route }: Props) {
     if (!courseId) return;
     setHistoryLoading(true);
     try {
-      const items = await listActivitiesByCourse(courseId);
+      const items = await listAttendanceRecords(courseId);
       const filtered = items.filter(it => {
-        if ((it.category || '').toLowerCase() !== 'asistencia') return false;
-        const ts: any = (it as any).createdAt;
-        let d: Date | null = null;
-        if (ts?.toDate) d = ts.toDate();
-        else if (typeof ts === 'string') d = new Date(ts);
-        else if (typeof ts === 'number') d = new Date(ts);
-        else if (ts instanceof Date) d = ts;
-        if (!d) return false;
-        const itemYmd = toYMD(new Date(d.getFullYear(), d.getMonth(), d.getDate()));
-        return itemYmd === ymd;
+        // Filtrar por fecha específica si se proporciona
+        if (ymd && it.date !== ymd) return false;
+        return true;
       });
       setHistoryItems(filtered);
       setHistoryDate(ymd);
@@ -101,18 +94,14 @@ export default function AttendanceScreen({ navigation, route }: Props) {
     }
   };
 
-  const parseAbsentNames = (desc?: string): string[] => {
-    if (!desc) return [];
-    const idx = desc.toLowerCase().indexOf('ausentes:');
-    if (idx === -1) return [];
-    const tail = desc.substring(idx + 'ausentes:'.length).trim();
-    return tail
-      .split(',')
-      .map(s => s.trim())
-      .filter(Boolean);
+
+
+  const getStudentName = (studentId: string): string => {
+    const student = students.find(s => s.id === studentId);
+    return student ? `${student.firstName} ${student.lastName ?? ''}`.trim() : 'Estudiante desconocido';
   };
 
-  const openHistoryDetail = (item: Activity) => {
+  const openHistoryDetail = (item: AttendanceRecord) => {
     setSelectedHistory(item);
     setDetailOpen(true);
   };
@@ -121,24 +110,19 @@ export default function AttendanceScreen({ navigation, route }: Props) {
     if (!courseId) return;
     setSaving(true);
     try {
-      const date = new Date();
-      const dd = String(date.getDate()).padStart(2, '0');
-      const mm = String(date.getMonth() + 1).padStart(2, '0');
-      const yyyy = date.getFullYear();
-      const title = `Asistencia - ${dd}/${mm}/${yyyy}`;
-      const presentCount = students.filter(s => s.id && present[s.id]).length;
-      const absentList = students.filter(s => s.id && !present[s.id]).map(s => `${s.firstName} ${s.lastName ?? ''}`.trim());
-      const description = `Presentes: ${presentCount}/${students.length}` + (absentList.length ? `\nAusentes: ${absentList.join(', ')}` : '');
-      await createActivity({
-        title,
-        description,
-        category: 'Asistencia',
+      const presentStudents = students.filter(s => s.id && present[s.id]).map(s => s.id!);
+      const absentStudents = students.filter(s => s.id && !present[s.id]).map(s => s.id!);
+      
+      await createAttendanceRecord({
         courseId,
-        priority: 'media',
-        completed: true,
+        presentStudents,
+        absentStudents,
+        totalStudents: students.length,
       });
-      Alert.alert('Asistencia guardada', 'Se registró la asistencia como una actividad.');
-      navigation.navigate('Activities', { filterCourseId: courseId });
+      
+      Alert.alert('Asistencia guardada', 'Se registró la asistencia correctamente.');
+      // Recargar la lista de estudiantes para refrescar la vista
+      load();
     } catch (e: any) {
       Alert.alert('Error', e?.message ?? 'No se pudo guardar la asistencia');
     } finally {
@@ -189,11 +173,9 @@ export default function AttendanceScreen({ navigation, route }: Props) {
                 <TouchableOpacity key={it.id} onPress={() => openHistoryDetail(it)} activeOpacity={0.85} style={[styles.historyItem, { borderColor: darkColors.border }] }>
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <MaterialCommunityIcons name="calendar-check" size={18} color={darkColors.accent} />
-                    <Text style={[styles.historyItemTitle, { color: colors.text }]}>{it.title}</Text>
+                    <Text style={[styles.historyItemTitle, { color: colors.text }]}>Asistencia - {it.date}</Text>
                   </View>
-                  {!!it.description && (
-                    <Text style={[styles.historyItemDesc, { color: darkColors.mutedText }]}>{it.description}</Text>
-                  )}
+                  <Text style={[styles.historyItemDesc, { color: darkColors.mutedText }]}>Presentes: {it.presentStudents.length}/{it.totalStudents}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -202,7 +184,7 @@ export default function AttendanceScreen({ navigation, route }: Props) {
       )}
 
       {!loading && students.length === 0 && (
-        <Text style={[styles.empty, { color: colors.textSecondary }]}>No hay estudiantes en esta clase.</Text>
+        <Text style={[styles.empty, { color: (colors as any).mutedText || colors.text }]}>No hay estudiantes en esta clase.</Text>
       )}
 
       {!loading && students.length > 0 && (
@@ -381,34 +363,29 @@ export default function AttendanceScreen({ navigation, route }: Props) {
             <Text style={[styles.modalTitle, { color: colors.text }]}>Detalle de asistencia</Text>
             {!!selectedHistory && (
               <>
-                <Text style={[styles.modalHelp, { color: darkColors.mutedText }]}>{selectedHistory.title}</Text>
+                <Text style={[styles.modalHelp, { color: darkColors.mutedText }]}>Asistencia - {selectedHistory.date}</Text>
                 {(() => {
-                  const absents = parseAbsentNames(selectedHistory.description);
-                  const absentSet = new Set(absents.map(n => n.toLowerCase()));
-                  const presentNames = students
-                    .map(s => `${s.firstName} ${s.lastName ?? ''}`.trim())
-                    .filter(n => !absentSet.has(n.toLowerCase()));
                   return (
                     <View style={{ marginTop: 12 }}>
-                      <Text style={[styles.historyTitle, { color: colors.text }]}>Presentes</Text>
-                      {presentNames.length === 0 ? (
+                      <Text style={[styles.historyTitle, { color: colors.text }]}>Presentes ({selectedHistory.presentStudents.length}/{selectedHistory.totalStudents})</Text>
+                      {selectedHistory.presentStudents.length === 0 ? (
                         <Text style={[styles.historyEmpty, { color: darkColors.mutedText }]}>Ninguno</Text>
                       ) : (
-                        presentNames.map((n, idx) => (
+                        selectedHistory.presentStudents.map((studentId, idx) => (
                           <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
                             <MaterialCommunityIcons name="checkbox-marked-circle" size={16} color={darkColors.success} />
-                            <Text style={{ marginLeft: 8, color: colors.text }}>{n}</Text>
+                            <Text style={{ marginLeft: 8, color: colors.text }}>{getStudentName(studentId)}</Text>
                           </View>
                         ))
                       )}
                       <Text style={[styles.historyTitle, { color: colors.text, marginTop: 12 }]}>Ausentes</Text>
-                      {absents.length === 0 ? (
+                      {selectedHistory.absentStudents.length === 0 ? (
                         <Text style={[styles.historyEmpty, { color: darkColors.mutedText }]}>Ninguno</Text>
                       ) : (
-                        absents.map((n, idx) => (
+                        selectedHistory.absentStudents.map((studentId, idx) => (
                           <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
                             <MaterialCommunityIcons name="close-circle" size={16} color={darkColors.error} />
-                            <Text style={{ marginLeft: 8, color: colors.text }}>{n}</Text>
+                            <Text style={{ marginLeft: 8, color: colors.text }}>{getStudentName(studentId)}</Text>
                           </View>
                         ))
                       )}

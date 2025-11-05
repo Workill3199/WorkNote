@@ -1,6 +1,8 @@
+// Servicio de cursos: creación con código único, listados, unión y autorizaciones.
 import { addDoc, collection, getDocs, query, serverTimestamp, updateDoc, doc, deleteDoc, where, getDoc, arrayUnion, runTransaction, setDoc } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
 
+// Tipo de curso almacenado en Firestore
 export type Course = {
   id?: string;
   title: string;
@@ -14,10 +16,12 @@ export type Course = {
   createdAt?: any;
 };
 
+// Colecciones utilizadas
 const col = () => collection(db!, 'courses');
 const codesCol = () => collection(db!, 'courseCodes');
 const studentsCol = () => collection(db!, 'students');
 
+// Genera un código aleatorio (sin caracteres ambiguos)
 function randomCode(len = 6) {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let out = '';
@@ -26,6 +30,7 @@ function randomCode(len = 6) {
 }
 
 // Reserva un código único utilizando transacción en Firestore para evitar colisiones concurrentes.
+// Reserva un código único mediante transacción (evita colisiones concurrentes)
 async function reserveUniqueShareCodeForCourse(courseRefId: string): Promise<string> {
   const upper = (s: string) => s.trim().toUpperCase();
   return await runTransaction(db!, async (tx) => {
@@ -43,6 +48,7 @@ async function reserveUniqueShareCodeForCourse(courseRefId: string): Promise<str
   });
 }
 
+// Crea curso y registra su código compartido de forma atómica
 export async function createCourse(input: { title: string; description?: string; classroom?: string; schedule?: string; semester?: string }): Promise<string> {
   const ownerId = auth?.currentUser?.uid || '';
   // Creamos referencias y escribimos atomícamente curso + código en transacción
@@ -66,6 +72,7 @@ export async function createCourse(input: { title: string; description?: string;
   return id;
 }
 
+// Lista cursos del usuario (propietario y colaborador), dedup y ordenados por creación
 export async function listCourses(): Promise<Course[]> {
   const uid = auth?.currentUser?.uid || '';
   const ownedQ = query(col(), where('ownerId', '==', uid));
@@ -79,20 +86,24 @@ export async function listCourses(): Promise<Course[]> {
   return rows.sort((a: any, b: any) => (a.createdAt?.toMillis?.() ?? 0) < (b.createdAt?.toMillis?.() ?? 0) ? 1 : -1);
 }
 
+// Actualiza curso por id
 export async function updateCourse(id: string, input: Partial<Course>) {
   await updateDoc(doc(db!, 'courses', id), input as any);
 }
 
+// Elimina curso por id
 export async function deleteCourse(id: string) {
   await deleteDoc(doc(db!, 'courses', id));
 }
 
+// Obtiene curso por id (o null si no existe)
 export async function getCourse(id: string): Promise<Course | null> {
   const dref = doc(db!, 'courses', id);
   const dsnap = await getDoc(dref);
   return dsnap.exists() ? ({ id: dsnap.id, ...(dsnap.data() as any) } as Course) : null;
 }
 
+// Obtiene curso por código compartido (con compatibilidad para cursos antiguos)
 export async function getCourseByShareCode(code: string): Promise<Course | null> {
   const ref = doc(db!, 'courseCodes', code.trim().toUpperCase());
   const snap = await getDoc(ref);
@@ -113,6 +124,7 @@ export async function getCourseByShareCode(code: string): Promise<Course | null>
 }
 
 // Crea (si falta) un registro de estudiante para el usuario actual en el curso indicado.
+// Crea el registro de estudiante del usuario al unirse a un curso, si no existe
 async function ensureJoinedUserStudentForCourse(courseId: string): Promise<void> {
   const uid = auth?.currentUser?.uid || '';
   if (!uid) return;
@@ -151,6 +163,7 @@ async function ensureJoinedUserStudentForCourse(courseId: string): Promise<void>
   }
 }
 
+// Une al usuario al curso por código y asegura su registro como estudiante
 export async function joinCourseByShareCode(code: string): Promise<Course | null> {
   const course = await getCourseByShareCode(code);
   if (!course?.id) return null;
@@ -160,6 +173,7 @@ export async function joinCourseByShareCode(code: string): Promise<Course | null
   return { ...course, collaboratorIds: [...(course.collaboratorIds || []), uid] };
 }
 
+// Une al usuario al curso por id y asegura su registro como estudiante
 export async function joinCourseById(courseId: string): Promise<Course | null> {
   const course = await getCourse(courseId);
   if (!course?.id) return null;
@@ -169,6 +183,7 @@ export async function joinCourseById(courseId: string): Promise<Course | null> {
   return { ...course, collaboratorIds: [...(course.collaboratorIds || []), uid] };
 }
 
+// Verifica si el usuario es propietario o colaborador del curso
 export async function isUserAuthorizedForCourse(courseId: string): Promise<boolean> {
   const uid = auth?.currentUser?.uid || '';
   const course = await getCourse(courseId);
@@ -177,6 +192,7 @@ export async function isUserAuthorizedForCourse(courseId: string): Promise<boole
 }
 
 // Garantiza que el curso tenga un shareCode persistido; si falta, lo genera y lo actualiza.
+// Garantiza que el curso tenga código compartido persistido; genera y guarda si falta
 export async function ensureCourseShareCode(courseId: string): Promise<string> {
   const course = await getCourse(courseId);
   if (!course?.id) throw new Error('Curso no encontrado');

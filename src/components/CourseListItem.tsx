@@ -1,9 +1,13 @@
+// Ítem de lista/tarjeta para cursos.
+// - Dos variantes: 'row' (lista compacta) y 'tile' (tarjeta para grid/web).
+// - Muestra avatar, título, metadatos (aula/semestre/horario) y acciones (editar, eliminar, compartir código).
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { darkColors } from '../theme/colors';
 import { fonts } from '../theme/typography';
 
+// Props admitidas por el componente: texto, metadatos, conteos y callbacks.
 type Props = {
   title: string;
   classroom?: string;
@@ -18,6 +22,7 @@ type Props = {
 };
 
 export default function CourseListItem({ title, classroom, schedule, semester, studentsCount = 0, variant = 'row', onPress, onEdit, onDelete, onShareCode }: Props) {
+  // Iniciales del título para avatar en variante 'row'.
   const initials = title
     .split(' ')
     .map((n) => n[0])
@@ -25,8 +30,10 @@ export default function CourseListItem({ title, classroom, schedule, semester, s
     .toUpperCase()
     .slice(0, 2);
 
+  // Texto de badge preferente: primero semestre, luego aula, si existen.
   const badgeText = semester ? `Semestre ${semester}` : classroom ? `Aula ${classroom}` : undefined;
 
+  // Variante 'tile': tarjeta con icono, metadatos y acciones.
   if (variant === 'tile') {
     return (
       <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={styles.touch}>
@@ -91,6 +98,7 @@ export default function CourseListItem({ title, classroom, schedule, semester, s
     );
   }
 
+  // Variante 'row': ítem de lista con avatar, metadatos y acciones.
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.touch}>
       <View style={styles.card}>

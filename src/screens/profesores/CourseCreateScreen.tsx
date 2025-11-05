@@ -1,3 +1,5 @@
+// Pantalla de creación/edición de cursos para profesores.
+// Incluye campos básicos y guarda en el servicio de cursos.
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useTheme } from '@react-navigation/native';
@@ -7,8 +9,9 @@ import { createCourse, updateCourse, Course } from '../../services/courses';
 type Props = NativeStackScreenProps<any>;
 
 export default function CourseCreateScreen({ navigation, route }: Props) {
-  const { colors } = useTheme();
-  const editItem = (route as any)?.params?.editItem as Course | undefined;
+  const { colors } = useTheme(); // Colores del tema
+  const editItem = (route as any)?.params?.editItem as Course | undefined; // Modo edición
+  // Estado de formulario
   const [title, setTitle] = useState(editItem?.title || '');
   const [description, setDescription] = useState(editItem?.description || '');
   const [classroom, setClassroom] = useState(editItem?.classroom || '');
@@ -17,6 +20,7 @@ export default function CourseCreateScreen({ navigation, route }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Crea/actualiza el curso con validación mínima y vuelve atrás
   const onSave = async () => {
     setError(null);
     if (!title.trim()) { setError('El título es obligatorio'); return; }

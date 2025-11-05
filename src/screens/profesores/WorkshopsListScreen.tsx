@@ -1,3 +1,5 @@
+// Listado de talleres para profesores.
+// Muestra conteos de estudiantes, permite crear/editar y eliminar.
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useTheme } from '@react-navigation/native';
@@ -9,12 +11,13 @@ import ManagementCard from '../../components/ManagementCard';
 type Props = NativeStackScreenProps<any>;
 
 export default function WorkshopsListScreen({ navigation }: Props) {
-  const { colors } = useTheme();
+  const { colors } = useTheme(); // paleta de colores del tema
   const [items, setItems] = useState<Workshop[]>([]);
   const [studentCounts, setStudentCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Carga talleres y calcula estudiantes por taller
   const load = async () => {
     setError(null);
     setLoading(true);
@@ -33,10 +36,12 @@ export default function WorkshopsListScreen({ navigation }: Props) {
   };
 
   useEffect(() => {
+    // Recarga al enfocarse la pantalla
     const unsubscribe = navigation.addListener('focus', load);
     return unsubscribe;
   }, [navigation]);
 
+  // Eliminar taller con confirmación y refrescar
   const onDelete = async (id?: string) => {
     if (!id) return;
     Alert.alert('Eliminar taller', '¿Seguro que deseas eliminarlo?', [
@@ -49,6 +54,7 @@ export default function WorkshopsListScreen({ navigation }: Props) {
     <View style={[styles.container, { backgroundColor: colors.background }] }>
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.text }]}>Talleres</Text>
+        {/* Acción para crear taller */}
         <TouchableOpacity style={[styles.addBtn, { backgroundColor: colors.primary }]} onPress={() => navigation.navigate('WorkshopCreate')}> 
           <Text style={styles.addText}>+ Agregar</Text>
         </TouchableOpacity>
@@ -58,9 +64,13 @@ export default function WorkshopsListScreen({ navigation }: Props) {
       {!!error && <Text style={[styles.error, { color: '#d32f2f' }]}>{error}</Text>}
 
       {!loading && items.length === 0 && (
-        <Text style={[styles.empty, { color: colors.mutedText }]}>No hay talleres aún. Crea el primero.</Text>
+        // En el tema por defecto de React Navigation no existe 'mutedText'.
+        // Usamos una aproximación segura: si el tema extendido provee 'mutedText'
+        // la usamos; de lo contrario caemos a 'colors.text'.
+        <Text style={[styles.empty, { color: (colors as any).mutedText || colors.text }]}>No hay talleres aún. Crea el primero.</Text>
       )}
 
+      {/* Lista de talleres */}
       {!loading && items.map(item => (
         <ManagementCard
           key={item.id}

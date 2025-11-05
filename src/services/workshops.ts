@@ -1,6 +1,8 @@
+// Servicio de talleres: CRUD y listado por propietario
 import { addDoc, collection, getDocs, query, serverTimestamp, updateDoc, doc, deleteDoc, where } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
 
+// Tipo Workshop
 export type Workshop = {
   id?: string;
   title: string;
@@ -11,8 +13,10 @@ export type Workshop = {
   createdAt?: any;
 };
 
+// Colección principal
 const col = () => collection(db!, 'workshops');
 
+// Crea un taller
 export async function createWorkshop(input: { title: string; description?: string; location?: string; schedule?: string }): Promise<string> {
   const ref = await addDoc(col(), {
     title: input.title,
@@ -25,6 +29,7 @@ export async function createWorkshop(input: { title: string; description?: strin
   return ref.id;
 }
 
+// Lista talleres del usuario actual
 export async function listWorkshops(): Promise<Workshop[]> {
   const uid = auth?.currentUser?.uid || '';
   const q = query(col(), where('ownerId', '==', uid));
@@ -33,10 +38,12 @@ export async function listWorkshops(): Promise<Workshop[]> {
   return rows.sort((a: any, b: any) => (a.createdAt?.toMillis?.() ?? 0) < (b.createdAt?.toMillis?.() ?? 0) ? 1 : -1);
 }
 
+// Actualiza taller por id
 export async function updateWorkshop(id: string, input: Partial<Workshop>) {
   await updateDoc(doc(db!, 'workshops', id), input as any);
 }
 
+// Elimina taller por id
 export async function deleteWorkshop(id: string) {
   await deleteDoc(doc(db!, 'workshops', id));
 }

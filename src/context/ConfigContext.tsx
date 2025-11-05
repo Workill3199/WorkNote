@@ -1,8 +1,14 @@
+// Contexto global de configuración de la app.
+// - Persiste en AsyncStorage bajo la clave STORAGE_KEY.
+// - Expone setters para cada opción y un método save() que además
+//   sincroniza el nickname con el perfil de Firebase (displayName).
+// - La bandera 'loaded' indica cuándo se terminó de cargar desde almacenamiento.
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { updateProfile } from 'firebase/auth';
 import { auth } from '../config/firebase';
 
+// Estructura de configuración soportada por la aplicación.
 export type AppConfig = {
   nickname: string;
   lightMode: boolean;
@@ -22,6 +28,7 @@ export type AppConfig = {
   excludeFromSearch: boolean;
 };
 
+// Valores por defecto para configuración inicial y como fallback.
 const DEFAULT_CONFIG: AppConfig = {
   nickname: 'Nuevo Apodo',
   lightMode: false,
@@ -35,6 +42,7 @@ const DEFAULT_CONFIG: AppConfig = {
   excludeFromSearch: false,
 };
 
+// Clave de almacenamiento local para persistir la configuración.
 const STORAGE_KEY = 'worknote:config';
 
 export type ConfigContextValue = {
@@ -55,10 +63,12 @@ export type ConfigContextValue = {
 
 const ConfigContext = createContext<ConfigContextValue | undefined>(undefined);
 
+// Proveedor del contexto: carga configuración, expone setters y guardado.
 export function ConfigProvider({ children }: { children: React.ReactNode }) {
   const [config, setConfig] = useState<AppConfig>(DEFAULT_CONFIG);
   const [loaded, setLoaded] = useState(false);
 
+  // Carga inicial desde AsyncStorage y marca loaded cuando termina.
   useEffect(() => {
     (async () => {
       try {
@@ -83,6 +93,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
   const setAnalytics = (v: boolean) => setConfig(prev => ({ ...prev, analytics: v }));
   const setExcludeFromSearch = (v: boolean) => setConfig(prev => ({ ...prev, excludeFromSearch: v }));
 
+  // Persiste la configuración y, si corresponde, actualiza el displayName en Firebase.
   const save = async () => {
     try {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(config));
@@ -103,6 +114,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
   return <ConfigContext.Provider value={value}>{children}</ConfigContext.Provider>;
 }
 
+// Hook de acceso al contexto; asegura uso dentro del proveedor.
 export function useConfig() {
   const ctx = useContext(ConfigContext);
   if (!ctx) throw new Error('useConfig must be used within ConfigProvider');
