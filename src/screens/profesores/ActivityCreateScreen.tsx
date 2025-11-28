@@ -513,7 +513,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(110,120,255,0.10)",
   }, // Chip activo
   chipText: { color: darkColors.mutedText, fontSize: 12 }, // Texto de chip
-  chipTextActive: { color: darkColors.primary }, // Texto de chip activo
+    chipTextActive: { color: '#fff' }, // Texto de chip activo
   hint: { fontSize: 11, color: darkColors.mutedText, marginBottom: 12 }, // Texto de ayuda
   scrollContent: {
     padding: 20,

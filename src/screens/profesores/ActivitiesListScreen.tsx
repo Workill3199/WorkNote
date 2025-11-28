@@ -4,7 +4,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, TextInput, Platform, ScrollView } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@react-navigation/native';
-import { darkColors } from '../../theme/colors';
+import { darkColors, lightColors } from '../../theme/colors';
+import { useConfig } from '../../context/ConfigContext';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { listActivities, Activity, deleteActivity, listActivitiesByCourse, listActivitiesByWorkshop, updateActivity } from '../../services/activities';
 import ManagementCard from '../../components/ManagementCard';
@@ -17,6 +18,7 @@ type Props = NativeStackScreenProps<any>;
 
 export default function ActivitiesListScreen({ navigation, route }: Props) {
   const { colors } = useTheme(); // Colores del tema activo
+  const { config } = useConfig();
   const insets = useSafeAreaInsets();
   const [items, setItems] = useState<Activity[]>([]); // Lista de actividades
   const [loading, setLoading] = useState(true); // Indicador de carga
@@ -31,22 +33,25 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
   const filterCourseId = (route as any)?.params?.filterCourseId as string | undefined; // Filtro por curso
   const selectedCourse = useMemo(() => courses.find(c => c.id === filterCourseId), [courses, filterCourseId]); // Curso seleccionado
 
-  // Tokens portados desde "actividades" basados en el tema oscuro
-  // Tokens de color locales (tema oscuro por defecto)
+  // Paleta dinámica por modo claro/oscuro
+  const palette = config.lightMode ? lightColors : darkColors;
   const T = {
-    bg: darkColors.background,
-    card: darkColors.card,
-    text: darkColors.text,
-    textMuted: darkColors.mutedText,
-    border: darkColors.border,
-    primary: darkColors.primary,
-    secondary: darkColors.secondary,
-    accent: darkColors.accent,
-    prioHigh: darkColors.error,
-    prioMedium: darkColors.warning,
-    prioLow: darkColors.success,
+    bg: palette.background,
+    card: palette.card,
+    text: palette.text,
+    textMuted: palette.mutedText,
+    border: palette.border,
+    primary: palette.primary,
+    secondary: palette.secondary,
+    accent: palette.accent,
+    prioHigh: palette.error,
+    prioMedium: palette.warning,
+    prioLow: palette.success,
   } as const;
   const HEX = T;
+  const isWeb = Platform.OS === 'web';
+  const surface = isWeb ? (config.lightMode ? 'rgba(255,255,255,0.60)' : 'rgba(42,42,58,0.7)') : T.card;
+  const blurFx = isWeb ? ({ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' } as any) : {};
 
   // Carga actividades según filtro por curso/taller
   const load = async () => {
@@ -106,6 +111,14 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return items.filter((item) => {
+      // Si viene un curso en la ruta, mostrar solo actividades de esa clase
+      if (filterCourseId) {
+        const inCourse = (item.courseId === filterCourseId) || ((item.courseIds || []).includes(filterCourseId));
+        if (!inCourse) return false;
+        // Y nunca mostrar asistencias dentro del listado de actividades de la clase
+        const cat = (item.category ?? '').toLowerCase();
+        if (cat === 'asistencia') return false;
+      }
       const matchesText = (
         (item.title ?? '').toLowerCase().includes(q) ||
         (item.description ?? '').toLowerCase().includes(q)
@@ -120,7 +133,7 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
       );
       return matchesText && matchesFilter;
     });
-  }, [items, query, filter]);
+  }, [items, query, filter, filterCourseId]);
 
   // Marca/desmarca una actividad como completada
   const toggleCompleted = async (id?: string, current?: boolean) => {
@@ -247,9 +260,8 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
         <View
           style={[
             styles.searchBox,
-            Platform.OS === 'web'
-              ? ({ backgroundColor: 'rgba(42,42,58,0.7)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' } as any)
-              : { backgroundColor: HEX.card },
+            { backgroundColor: surface, borderColor: T.border },
+            blurFx,
           ]}
         >
           <MaterialCommunityIcons name="magnify" size={16} color={T.accent} />
@@ -269,7 +281,7 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
           const active = filter === f;
           return (
             <TouchableOpacity key={f} onPress={() => setFilter(f)} style={[styles.chip, active && styles.chipActive, { borderColor: T.accent }]} activeOpacity={0.8}>
-              <Text style={[styles.chipText, active && styles.chipTextActive, { color: active ? T.bg : T.text }]}>{f}</Text>
+            <Text style={[styles.chipText, active && styles.chipTextActive, { color: active ? (config.lightMode ? T.bg : '#fff') : T.text }]}>{f}</Text>
             </TouchableOpacity>
           );
         })}
@@ -289,7 +301,7 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
           ? item.courseIds.map(id => courseTitleById[id] ?? id).join(', ')
           : (item.courseId ? (courseTitleById[item.courseId] ?? item.courseId) : undefined);
         return (
-          <View key={item.id} style={[styles.card, { borderColor: T.border, backgroundColor: Platform.OS === 'web' ? 'rgba(42,42,58,0.7)' : T.card }, Platform.OS === 'web' ? ({ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' } as any) : {}] }>
+          <View key={item.id} style={[styles.card, { borderColor: T.border, backgroundColor: surface }, blurFx] }>
             <View style={[styles.leftBar, { backgroundColor: prioColor }]} />
             <View style={styles.cardContent}>
               <View style={styles.cardHeaderRow}>
@@ -297,9 +309,6 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
                   {item.completed && <MaterialCommunityIcons name="check" size={14} color={HEX.text} />}
                 </TouchableOpacity>
                 <Text style={[styles.cardTitle, { color: HEX.text }]}>{item.title}</Text>
-                <TouchableOpacity onPress={() => navigation.navigate('ActivityCreate', { editItem: item })}>
-                  <MaterialCommunityIcons name="chevron-right" size={18} color={T.accent} />
-                </TouchableOpacity>
               </View>
 
               {!!item.description && (
@@ -347,14 +356,22 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
                   </View>
                 </View>
               )}
-              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 10 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 10, gap: 8 as any }}>
+                <TouchableOpacity
+                  onPress={() => {
+                    (navigation as any).navigate('ActivityDetail', { activityId: item.id, activity: item });
+                  }}
+                  activeOpacity={0.9}
+                  style={[styles.addBtn, { backgroundColor: T.primary }]}> 
+                  <Text style={styles.addText}>Ver detalle</Text>
+                </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => {
                     const courseId = filterCourseId || item.courseId || ((item.courseIds || [])[0] || '');
                     (navigation as any).navigate('ActivitySubmissions', { activityId: item.id, courseId, activityTitle: item.title });
                   }}
                   activeOpacity={0.9}
-                  style={[styles.addBtn, { backgroundColor: T.primary }]}>
+                  style={[styles.addBtn, { backgroundColor: T.primary }]}> 
                   <Text style={styles.addText}>Revisar entregas</Text>
                 </TouchableOpacity>
               </View>
@@ -374,7 +391,7 @@ const styles = StyleSheet.create({
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 as any },
   title: { fontSize: 18, fontWeight: '700' },
   addBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
-  addText: { color: '#1A1A2E', fontWeight: '700' },
+    addText: { color: '#fff', fontWeight: '700' },
   error: { marginTop: 8, textAlign: 'center' },
   empty: { marginTop: 12, textAlign: 'center' },
   searchRow: { marginBottom: 8 },
@@ -384,7 +401,7 @@ const styles = StyleSheet.create({
   chip: { borderWidth: 1.5, borderColor: darkColors.border, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, marginRight: 6, marginBottom: 6, backgroundColor: Platform.OS === 'web' ? 'rgba(42,42,58,0.65)' : darkColors.card, ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' } as any) : {}), shadowColor: darkColors.accent, shadowOpacity: Platform.OS === 'web' ? 0 : 0.2, shadowRadius: 6, shadowOffset: { width: 0, height: 3 } },
   chipActive: { borderColor: darkColors.primary, backgroundColor: 'rgba(42,42,58,0.8)', shadowColor: darkColors.primary, shadowOpacity: Platform.OS === 'web' ? 0 : 0.35, shadowRadius: 8 },
   chipText: { color: darkColors.mutedText, fontSize: 12, fontWeight: '600' },
-  chipTextActive: { color: darkColors.primary },
+    chipTextActive: { color: '#fff' },
   card: { position: 'relative', borderWidth: 2, borderRadius: 14, padding: 14, marginTop: 12, shadowColor: '#0B1221', shadowOpacity: 0.28, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 7 },
   leftBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 6, borderTopLeftRadius: 14, borderBottomLeftRadius: 14 },
   cardContent: { marginLeft: 8 },

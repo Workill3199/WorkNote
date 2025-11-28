@@ -26,7 +26,7 @@ export const darkColors = {
 
 export const lightColors = {
   // Basado en styles/globals.css (root)
-  background: '#FFFFFF', // oklch(1 0 0)
+  background: '#F7F8FB', // blanco ligeramente más oscuro para diferenciar tarjetas
   foreground: '#242424', // oklch(0.145 0 0)
   card: '#FFFFFF',
   text: '#0F172A',

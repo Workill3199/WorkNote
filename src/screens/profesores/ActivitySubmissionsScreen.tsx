@@ -162,5 +162,5 @@ const styles = StyleSheet.create({
   fileBadge: { flexDirection: 'row', alignItems: 'center', gap: 8 as any, borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8 },
   fileName: { flex: 1, fontSize: 13 },
   downloadBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6 },
-  downloadText: { color: '#1A1A2E', fontWeight: '700' },
+    downloadText: { color: '#fff', fontWeight: '700' },
 });

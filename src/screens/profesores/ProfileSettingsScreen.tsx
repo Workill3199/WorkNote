@@ -156,7 +156,7 @@ export default function ProfileSettingsScreen() {
         Platform.OS === 'web' ? ({ position: 'sticky', top: 0, zIndex: 50, backgroundColor: 'rgba(20,25,35,0.95)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' } as any) : {}
       ]}>        
         <TouchableOpacity style={styles.headerBackBtn} onPress={() => navigation.goBack()} accessibilityLabel="Volver">
-          <MaterialCommunityIcons name="chevron-left" size={22} color={colors.text} />
+          <MaterialCommunityIcons name="chevron-left" size={22} color="#fff" />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Configuración de Perfil</Text>
       </View>
@@ -245,7 +245,7 @@ export default function ProfileSettingsScreen() {
                 <Text style={{ color: colors.text }}>Nombre, bio, foto</Text>
               </View>
             </View>
-            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.mutedText} />
+            <MaterialCommunityIcons name="chevron-right" size={20} color="#fff" />
           </TouchableOpacity>
           <View style={[styles.separator, { backgroundColor: colors.border }]} />
           <TouchableOpacity style={styles.row}>
@@ -258,7 +258,7 @@ export default function ProfileSettingsScreen() {
                 <Text style={{ color: colors.text }}>{user?.email || 'No disponible'}</Text>
               </View>
             </View>
-            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.mutedText} />
+            <MaterialCommunityIcons name="chevron-right" size={20} color="#fff" />
           </TouchableOpacity>
           <View style={[styles.separator, { backgroundColor: colors.border }]} />
           <TouchableOpacity style={styles.row} onPress={() => setEditingPhone(true)}>
@@ -285,7 +285,7 @@ export default function ProfileSettingsScreen() {
                 )}
               </View>
             </View>
-            {!editingPhone && <MaterialCommunityIcons name="chevron-right" size={20} color={colors.mutedText} />}
+            {!editingPhone && <MaterialCommunityIcons name="chevron-right" size={20} color="#fff" />}
           </TouchableOpacity>
         </View>
 
@@ -299,7 +299,7 @@ export default function ProfileSettingsScreen() {
               </View>
               <Text style={[styles.rowTitle, { color: colors.text }]}>Notificaciones</Text>
             </View>
-            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.mutedText} />
+            <MaterialCommunityIcons name="chevron-right" size={20} color="#fff" />
           </TouchableOpacity>
           <View style={[styles.separator, { backgroundColor: colors.border }]} />
           <TouchableOpacity style={styles.row}>
@@ -309,7 +309,7 @@ export default function ProfileSettingsScreen() {
               </View>
               <Text style={[styles.rowTitle, { color: colors.text }]}>Accesibilidad</Text>
             </View>
-            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.mutedText} />
+            <MaterialCommunityIcons name="chevron-right" size={20} color="#fff" />
           </TouchableOpacity>
         </View>
 
@@ -323,7 +323,7 @@ export default function ProfileSettingsScreen() {
               </View>
               <Text style={[styles.rowTitle, { color: colors.text }]}>Privacidad y Seguridad</Text>
             </View>
-            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.mutedText} />
+            <MaterialCommunityIcons name="chevron-right" size={20} color="#fff" />
           </TouchableOpacity>
         </View>
 
@@ -347,7 +347,7 @@ export default function ProfileSettingsScreen() {
               </View>
               <Text style={[styles.rowTitle, { color: colors.text }]}>Términos y Condiciones</Text>
             </View>
-            <MaterialCommunityIcons name="chevron-right" size={22} color={colors.mutedText} />
+            <MaterialCommunityIcons name="chevron-right" size={22} color="#fff" />
           </TouchableOpacity>
         </View>
         {/* Pie de página versión */}
@@ -356,15 +356,10 @@ export default function ProfileSettingsScreen() {
         </View>
 
         {/* Cerrar sesión separado al final */}
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, marginBottom: 24 }] }>
-          <TouchableOpacity style={styles.row} onPress={handleLogout}>
-            <View style={styles.rowLeft}>
-              <View style={[styles.rowIcon, { backgroundColor: '#FDE6E6' }]}>                
-                <MaterialCommunityIcons name="exit-to-app" size={18} color={colors.error || '#E53E3E'} />
-              </View>
-              <Text style={{ color: colors.error || '#E53E3E', fontWeight: '600' }}>Cerrar Sesión</Text>
-            </View>
-            <MaterialCommunityIcons name="chevron-right" size={22} color={colors.mutedText} />
+        <View style={{ paddingHorizontal: 16, marginBottom: 24 }}>
+          <TouchableOpacity style={[styles.dangerButton, { backgroundColor: colors.error || '#E53E3E' }]} onPress={handleLogout}>
+            <MaterialCommunityIcons name="exit-to-app" size={18} color="#fff" />
+            <Text style={styles.dangerButtonText}>Cerrar Sesión</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -393,6 +388,8 @@ const styles = StyleSheet.create({
   rowTitle: { fontSize: 15, fontWeight: '600' },
   separator: { height: 1, marginHorizontal: 16, opacity: 0.4 },
   logoutCard: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 12, marginTop: 16 },
+  dangerButton: { height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
+  dangerButtonText: { color: '#fff', fontWeight: '700', fontSize: 15 },
   saveBtn: { marginTop: 16, borderRadius: 12, alignItems: 'center', paddingVertical: 14 },
   saveText: { color: '#fff', fontWeight: '700' },
 });

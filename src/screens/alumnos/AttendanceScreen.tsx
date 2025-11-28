@@ -5,14 +5,20 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Student, listStudentsByCourse } from '../../services/students';
 import { createAttendanceRecord, listAttendanceRecords, AttendanceRecord } from '../../services/attendance';
 import { listCourses, Course } from '../../services/courses';
-import { darkColors } from '../../theme/colors';
+import { darkColors, lightColors } from '../../theme/colors';
 import NeonButton from '../../components/NeonButton';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useConfig } from '../../context/ConfigContext';
 
 type Props = NativeStackScreenProps<any>;
 
 export default function AttendanceScreen({ navigation, route }: Props) {
   const { colors } = useTheme();
+  const { config } = useConfig();
+  const palette = config.lightMode ? lightColors : darkColors;
+  const isWeb = Platform.OS === 'web';
+  const surface = isWeb ? (config.lightMode ? 'rgba(255,255,255,0.55)' : 'rgba(20,25,35,0.5)') : palette.card;
+  const blurFx = isWeb ? ({ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' } as any) : {};
   const courseId = (route as any)?.params?.filterCourseId as string | undefined;
   const [students, setStudents] = useState<Student[]>([]);
   const [present, setPresent] = useState<Record<string, boolean>>({});
@@ -132,25 +138,25 @@ export default function AttendanceScreen({ navigation, route }: Props) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }] }>
-      <View style={[styles.header, { borderBottomColor: darkColors.border }]}>
+      <View style={[styles.header, { borderBottomColor: palette.border }]}>
         <Text style={[styles.title, { color: colors.text }]}>Asistencia</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <NeonButton
             title={'Historial'}
             onPress={() => { setHistoryInput(toYMD(new Date())); setHistoryOpen(true); }}
-            colors={{ ...colors, primary: darkColors.accent } as any}
+            colors={{ ...colors, primary: palette.accent } as any}
             shadowRadius={12}
             elevation={6}
-            style={[styles.headerBtn, { backgroundColor: darkColors.accent, marginRight: 8 }]}
+            style={[styles.headerBtn, { backgroundColor: palette.accent, marginRight: 8 }]}
             textStyle={styles.headerBtnText}
           />
           <NeonButton
             title={saving ? 'Guardando...' : 'Guardar'}
             onPress={onSave}
-            colors={{ ...colors, primary: darkColors.success } as any}
+            colors={{ ...colors, primary: palette.success } as any}
             shadowRadius={12}
             elevation={6}
-            style={[styles.headerBtn, { backgroundColor: darkColors.success }]}
+            style={[styles.headerBtn, { backgroundColor: palette.success }]}
             textStyle={styles.headerBtnText}
           />
         </View>
@@ -160,22 +166,22 @@ export default function AttendanceScreen({ navigation, route }: Props) {
       {!!error && <Text style={[styles.error, { color: '#d32f2f' }]}>{error}</Text>}
 
       {!!historyDate && (
-        <View style={[styles.historyBox, { borderColor: darkColors.border }] }>
+        <View style={[styles.historyBox, { borderColor: palette.border }] }>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Text style={[styles.historyTitle, { color: colors.text }]}>Historial · {historyDate}</Text>
             {historyLoading && <ActivityIndicator color={colors.primary} />}
           </View>
           {historyItems.length === 0 && !historyLoading ? (
-            <Text style={[styles.historyEmpty, { color: darkColors.mutedText }]}>No hay registros de asistencia ese día.</Text>
+            <Text style={[styles.historyEmpty, { color: palette.mutedText }]}>No hay registros de asistencia ese día.</Text>
           ) : (
             <View>
               {historyItems.map(it => (
-                <TouchableOpacity key={it.id} onPress={() => openHistoryDetail(it)} activeOpacity={0.85} style={[styles.historyItem, { borderColor: darkColors.border }] }>
+                <TouchableOpacity key={it.id} onPress={() => openHistoryDetail(it)} activeOpacity={0.85} style={[styles.historyItem, { borderColor: palette.border }] }>
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <MaterialCommunityIcons name="calendar-check" size={18} color={darkColors.accent} />
+                    <MaterialCommunityIcons name="calendar-check" size={18} color={palette.accent} />
                     <Text style={[styles.historyItemTitle, { color: colors.text }]}>Asistencia - {it.date}</Text>
                   </View>
-                  <Text style={[styles.historyItemDesc, { color: darkColors.mutedText }]}>Presentes: {it.presentStudents.length}/{it.totalStudents}</Text>
+                  <Text style={[styles.historyItemDesc, { color: palette.mutedText }]}>Presentes: {it.presentStudents.length}/{it.totalStudents}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -192,12 +198,12 @@ export default function AttendanceScreen({ navigation, route }: Props) {
           {students.map(s => {
             const checked = !!present[s.id!];
             return (
-              <TouchableOpacity key={s.id} style={[styles.row, { borderColor: darkColors.border, backgroundColor: Platform.OS === 'web' ? 'rgba(20,25,35,0.5)' : darkColors.card }]} activeOpacity={0.8} onPress={() => setPresent(prev => ({ ...prev, [s.id!]: !checked }))}>
+              <TouchableOpacity key={s.id} style={[styles.row, { borderColor: palette.border, backgroundColor: surface, ...blurFx }]} activeOpacity={0.8} onPress={() => setPresent(prev => ({ ...prev, [s.id!]: !checked }))}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <MaterialCommunityIcons name={checked ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'} size={20} color={checked ? darkColors.success : darkColors.mutedText} />
+                  <MaterialCommunityIcons name={checked ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'} size={20} color={checked ? palette.success : palette.mutedText} />
                   <Text style={[styles.rowText, { color: colors.text }]}>{`${s.firstName} ${s.lastName ?? ''}`.trim()}</Text>
                 </View>
-                <Text style={[styles.status, { color: checked ? darkColors.success : darkColors.mutedText }]}>{checked ? 'Presente' : 'Ausente'}</Text>
+                <Text style={[styles.status, { color: checked ? palette.success : palette.mutedText }]}>{checked ? 'Presente' : 'Ausente'}</Text>
               </TouchableOpacity>
             );
           })}
@@ -206,14 +212,14 @@ export default function AttendanceScreen({ navigation, route }: Props) {
 
       <Modal visible={historyOpen} transparent animationType="fade" onRequestClose={() => setHistoryOpen(false)}>
         <View style={styles.modalBackdrop}>
-          <View style={[styles.modalBox, { backgroundColor: colors.card, borderColor: darkColors.border }] }>
+          <View style={[styles.modalBox, { backgroundColor: colors.card, borderColor: palette.border }] }>
             <Text style={[styles.modalTitle, { color: colors.text }]}>Seleccione una fecha</Text>
-            <Text style={[styles.modalHelp, { color: darkColors.mutedText }]}>Puede cargar manualmente en formato YYYY-MM-DD.</Text>
+            <Text style={[styles.modalHelp, { color: palette.mutedText }]}>Puede cargar manualmente en formato YYYY-MM-DD.</Text>
             {/* Calendario (Web: input nativo; Móvil: simple grid) */}
             {Platform.OS === 'web' ? (
-              <View style={[styles.inputRow, { backgroundColor: colors.card, borderColor: darkColors.border }] }>
+              <View style={[styles.inputRow, { backgroundColor: colors.card, borderColor: palette.border }] }>
                 {React.createElement('style', {
-                  dangerouslySetInnerHTML: { __html: `.history-date-input { color-scheme: dark; }` },
+                  dangerouslySetInnerHTML: { __html: `.history-date-input { color-scheme: ${config.lightMode ? 'light' : 'dark'}; }` },
                 })}
                 {React.createElement('input', {
                   type: 'date',
@@ -237,12 +243,12 @@ export default function AttendanceScreen({ navigation, route }: Props) {
               </View>
             ) : (
               <>
-                <View style={[styles.inputRow, { borderColor: darkColors.border, backgroundColor: colors.card }]}>
+                <View style={[styles.inputRow, { borderColor: palette.border, backgroundColor: colors.card }]}>
                   <TextInput
                     value={historyInput}
                     onChangeText={setHistoryInput}
                     placeholder="YYYY-MM-DD"
-                    placeholderTextColor={darkColors.mutedText}
+                    placeholderTextColor={palette.mutedText}
                     style={[styles.inputField, { color: colors.text }]}
                   />
                   <TouchableOpacity onPress={() => { /* toggle calendar could be added */ }} style={styles.inputIcon}>
@@ -272,7 +278,7 @@ export default function AttendanceScreen({ navigation, route }: Props) {
                 </View>
                 <View style={styles.calWeekRow}>
                   {['L','M','X','J','V','S','D'].map((d, i) => (
-                    <Text key={i} style={[styles.calWeekCell, { color: darkColors.mutedText }]}>{d}</Text>
+                    <Text key={i} style={[styles.calWeekCell, { color: palette.mutedText }]}>{d}</Text>
                   ))}
                 </View>
                 {(() => {
@@ -302,7 +308,7 @@ export default function AttendanceScreen({ navigation, route }: Props) {
                             return (
                               <TouchableOpacity
                                 key={di}
-                                style={[styles.calCell, isSel ? { backgroundColor: darkColors.accent, borderRadius: 8 } : null]}
+                                style={[styles.calCell, isSel ? { backgroundColor: palette.accent, borderRadius: 8 } : null]}
                                 onPress={() => setHistoryInput(ymd)}
                               >
                                 <Text style={[styles.calCellText, { color: isSel ? '#fff' : colors.text }]}>{day}</Text>
@@ -320,26 +326,26 @@ export default function AttendanceScreen({ navigation, route }: Props) {
               <NeonButton
                 title={'Hoy'}
                 onPress={() => setHistoryInput(toYMD(new Date()))}
-                colors={{ ...colors, primary: darkColors.primary } as any}
+                colors={{ ...colors, primary: palette.primary } as any}
                 shadowRadius={10}
                 elevation={4}
-                style={[styles.modalQuickBtn, { backgroundColor: darkColors.primary }]}
+                style={[styles.modalQuickBtn, { backgroundColor: palette.primary }]}
                 textStyle={styles.modalQuickText}
               />
               <NeonButton
                 title={'Ayer'}
                 onPress={() => { const d = new Date(); d.setDate(d.getDate() - 1); setHistoryInput(toYMD(d)); }}
-                colors={{ ...colors, primary: darkColors.secondary } as any}
+                colors={{ ...colors, primary: palette.secondary } as any}
                 shadowRadius={10}
                 elevation={4}
-                style={[styles.modalQuickBtn, { backgroundColor: darkColors.secondary }]}
+                style={[styles.modalQuickBtn, { backgroundColor: palette.secondary }]}
                 textStyle={styles.modalQuickText}
               />
             </View>
             {Platform.OS !== 'web' && null}
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12 }}>
-              <TouchableOpacity onPress={() => setHistoryOpen(false)} style={[styles.modalBtn, { borderColor: darkColors.border }] }>
-                <Text style={[styles.modalBtnText, { color: darkColors.mutedText }]}>Cancelar</Text>
+              <TouchableOpacity onPress={() => setHistoryOpen(false)} style={[styles.modalBtn, { borderColor: palette.border }] }>
+                <Text style={[styles.modalBtnText, { color: palette.mutedText }]}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => {
@@ -347,9 +353,9 @@ export default function AttendanceScreen({ navigation, route }: Props) {
                   if (!ok) { Alert.alert('Fecha inválida', 'Use el formato YYYY-MM-DD'); return; }
                   loadHistory(historyInput.trim());
                 }}
-                style={[styles.modalBtn, { marginLeft: 8, borderColor: darkColors.success } ]}
+                style={[styles.modalBtn, { marginLeft: 8, borderColor: palette.success } ]}
               >
-                <Text style={[styles.modalBtnText, { color: darkColors.success }]}>Aceptar</Text>
+                <Text style={[styles.modalBtnText, { color: palette.success }]}>Aceptar</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -359,32 +365,32 @@ export default function AttendanceScreen({ navigation, route }: Props) {
       {/* Modal detalle de asistencia del día seleccionado */}
       <Modal visible={detailOpen} transparent animationType="fade" onRequestClose={() => setDetailOpen(false)}>
         <View style={styles.modalBackdrop}>
-          <View style={[styles.modalBox, { backgroundColor: colors.card, borderColor: darkColors.border }] }>
+          <View style={[styles.modalBox, { backgroundColor: colors.card, borderColor: palette.border }] }>
             <Text style={[styles.modalTitle, { color: colors.text }]}>Detalle de asistencia</Text>
             {!!selectedHistory && (
               <>
-                <Text style={[styles.modalHelp, { color: darkColors.mutedText }]}>Asistencia - {selectedHistory.date}</Text>
+                <Text style={[styles.modalHelp, { color: palette.mutedText }]}>Asistencia - {selectedHistory.date}</Text>
                 {(() => {
                   return (
                     <View style={{ marginTop: 12 }}>
                       <Text style={[styles.historyTitle, { color: colors.text }]}>Presentes ({selectedHistory.presentStudents.length}/{selectedHistory.totalStudents})</Text>
                       {selectedHistory.presentStudents.length === 0 ? (
-                        <Text style={[styles.historyEmpty, { color: darkColors.mutedText }]}>Ninguno</Text>
+                        <Text style={[styles.historyEmpty, { color: palette.mutedText }]}>Ninguno</Text>
                       ) : (
                         selectedHistory.presentStudents.map((studentId, idx) => (
                           <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
-                            <MaterialCommunityIcons name="checkbox-marked-circle" size={16} color={darkColors.success} />
+                            <MaterialCommunityIcons name="checkbox-marked-circle" size={16} color={palette.success} />
                             <Text style={{ marginLeft: 8, color: colors.text }}>{getStudentName(studentId)}</Text>
                           </View>
                         ))
                       )}
                       <Text style={[styles.historyTitle, { color: colors.text, marginTop: 12 }]}>Ausentes</Text>
                       {selectedHistory.absentStudents.length === 0 ? (
-                        <Text style={[styles.historyEmpty, { color: darkColors.mutedText }]}>Ninguno</Text>
+                        <Text style={[styles.historyEmpty, { color: palette.mutedText }]}>Ninguno</Text>
                       ) : (
                         selectedHistory.absentStudents.map((studentId, idx) => (
                           <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
-                            <MaterialCommunityIcons name="close-circle" size={16} color={darkColors.error} />
+                            <MaterialCommunityIcons name="close-circle" size={16} color={palette.error} />
                             <Text style={{ marginLeft: 8, color: colors.text }}>{getStudentName(studentId)}</Text>
                           </View>
                         ))
@@ -395,7 +401,7 @@ export default function AttendanceScreen({ navigation, route }: Props) {
               </>
             )}
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 16 }}>
-              <TouchableOpacity onPress={() => setDetailOpen(false)} style={[styles.modalBtn, { borderColor: darkColors.border }] }>
+              <TouchableOpacity onPress={() => setDetailOpen(false)} style={[styles.modalBtn, { borderColor: palette.border }] }>
                 <Text style={[styles.modalBtnText, { color: colors.text }]}>Cerrar</Text>
               </TouchableOpacity>
             </View>

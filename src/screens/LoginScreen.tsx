@@ -11,17 +11,29 @@ import { fonts } from '../theme/typography';
 import { darkColors, lightColors } from '../theme/colors';
 import NeonButton from '../components/NeonButton';
 import { getUserRole } from '../services/users';
+import { useConfig } from '../context/ConfigContext';
 
 type Props = NativeStackScreenProps<any>;
 
 export default function LoginScreen({ navigation }: Props) {
   const { colors } = useTheme(); // colores del tema
   const palette = colors.background === darkColors.background ? darkColors : lightColors;
+  const { config, setLightMode, save } = useConfig();
+  const isWeb = (typeof window !== 'undefined');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [secure, setSecure] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const onToggleTheme = async () => {
+    setLightMode(!config.lightMode);
+    await save();
+    if (isWeb) {
+      try {
+        (document.documentElement as any).style.colorScheme = !config.lightMode ? 'light' : 'dark';
+      } catch {}
+    }
+  };
   // Maneja el flujo de login y navegación por rol
   const handleLogin = async () => {
     setError(null);
@@ -54,6 +66,22 @@ export default function LoginScreen({ navigation }: Props) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }] }>
+      <View style={{ position: 'absolute', right: 16, top: 16 }}>
+        <TouchableOpacity
+          onPress={onToggleTheme}
+          style={{
+            flexDirection: 'row', alignItems: 'center', gap: 8 as any,
+            paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
+            borderWidth: 1, borderColor: colors.border,
+            backgroundColor: (isWeb ? (config.lightMode ? 'rgba(255,255,255,0.7)' : 'rgba(42,42,58,0.7)') : colors.card),
+            ...(isWeb ? ({ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' } as any) : {}),
+          }}
+          accessibilityLabel={config.lightMode ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro'}
+        >
+          <MaterialCommunityIcons name={config.lightMode ? 'moon-waxing-crescent' : 'white-balance-sunny'} size={18} color={colors.text} />
+          <Text style={{ color: colors.text, fontFamily: fonts.medium, fontSize: 12 }}>{config.lightMode ? 'Oscuro' : 'Claro'}</Text>
+        </TouchableOpacity>
+      </View>
       {/* Logo superior */}
       <View style={styles.logoWrap}>
         <Image source={require('../../assets/logoA.png')} style={styles.logoImage} resizeMode="contain" />
@@ -103,7 +131,14 @@ export default function LoginScreen({ navigation }: Props) {
       </TouchableOpacity>
 
       {/* Botón principal */}
-      <NeonButton title="Iniciar sesión" onPress={handleLogin} colors={colors} loading={loading} style={styles.button} textStyle={styles.buttonText} />
+      <NeonButton
+        title="Iniciar sesión"
+        onPress={handleLogin}
+        colors={{ ...colors, text: '#fff' }}
+        loading={loading}
+        style={styles.button}
+        textStyle={[styles.buttonText, { color: '#fff' }]}
+      />
 
       {/* Registro */}
       <View style={styles.signupRow}>

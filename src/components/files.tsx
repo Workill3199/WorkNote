@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { darkColors } from '../theme/colors';
 
 export interface SelectedFile {
   uri: string;
@@ -31,6 +32,18 @@ export function FileUpload({
   maxFiles = 10,
 }: FileUploadProps) {
   const [pendingFiles, setPendingFiles] = useState<SelectedFile[]>([]);
+  const T = darkColors;
+
+  function iconForType(type?: string) {
+    const t = (type || '').toLowerCase();
+    if (t.includes('pdf')) return 'file-pdf-box';
+    if (t.includes('image')) return 'file-image';
+    if (t.includes('zip') || t.includes('rar')) return 'folder-zip';
+    if (t.includes('word') || t.includes('doc')) return 'file-word-box';
+    if (t.includes('sheet') || t.includes('excel') || t.includes('xls')) return 'file-excel-box';
+    if (t.includes('powerpoint') || t.includes('ppt')) return 'file-powerpoint-box';
+    return 'file';
+  }
 
   // --- Web file selection ---
   function handleWebFileSelection() {
@@ -120,17 +133,17 @@ export function FileUpload({
       <View style={styles.container}>
         <TouchableOpacity
           onPress={handleFileSelection}
-          style={styles.chip}
+          style={[styles.chip, { backgroundColor: T.card, borderColor: T.border }]}
           activeOpacity={0.85}
         >
-          <MaterialCommunityIcons name="file-plus" size={16} color="#007AFF" />
-          <Text style={styles.chipText}>Agregar archivos</Text>
+          <MaterialCommunityIcons name="cloud-upload" size={16} color={T.accent} />
+          <Text style={[styles.chipText, { color: T.text }]}>Agregar archivos</Text>
         </TouchableOpacity>
 
         {pendingFiles.length > 0 && (
-          <View style={[styles.chip, { marginLeft: 8 }]}>
-            <MaterialCommunityIcons name="paperclip" size={16} color="#5856D6" />
-            <Text style={styles.chipText}>Seleccionados: {pendingFiles.length}</Text>
+          <View style={[styles.chip, { marginLeft: 8, backgroundColor: T.card, borderColor: T.border }]}> 
+            <MaterialCommunityIcons name="paperclip" size={16} color={T.accent} />
+            <Text style={[styles.chipText, { color: T.text }]}>Seleccionados: {pendingFiles.length}</Text>
           </View>
         )}
 
@@ -144,12 +157,15 @@ export function FileUpload({
       {pendingFiles.length > 0 && (
         <View style={styles.fileList}>
           {pendingFiles.map((file, index) => (
-            <View key={index} style={styles.fileItem}>
+            <View key={index} style={[styles.fileItem, { borderColor: T.border, backgroundColor: T.card }] }>
               <View style={styles.fileInfo}>
-                <Text style={styles.fileName} numberOfLines={1}>
-                  {file.name}
-                </Text>
-                <Text style={styles.fileSize}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <MaterialCommunityIcons name={iconForType(file.type)} size={18} color={T.text} />
+                  <Text style={[styles.fileName, { color: T.text }]} numberOfLines={1}>
+                    {file.name}
+                  </Text>
+                </View>
+                <Text style={[styles.fileSize, { color: T.mutedText }]}>
                   {file.size
                     ? `${(file.size / 1024).toFixed(1)} KB`
                     : 'Tamaño desconocido'}
@@ -159,7 +175,7 @@ export function FileUpload({
                 onPress={() => removeFile(index)}
                 style={styles.removeButton}
               >
-                <MaterialCommunityIcons name="close" size={20} color="#FF3B30" />
+                <MaterialCommunityIcons name="trash-can" size={18} color={T.error} />
               </TouchableOpacity>
             </View>
           ))}
@@ -182,6 +198,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
+    borderWidth: 1,
   },
   chipText: {
     marginLeft: 6,
@@ -209,6 +226,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: '#333333',
+    marginLeft: 6,
   },
   fileSize: {
     fontSize: 12,

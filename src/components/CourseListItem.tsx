@@ -4,8 +4,9 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { darkColors } from '../theme/colors';
+import { darkColors, lightColors } from '../theme/colors';
 import { fonts } from '../theme/typography';
+import { useConfig } from '../context/ConfigContext';
 
 // Props admitidas por el componente: texto, metadatos, conteos y callbacks.
 type Props = {
@@ -22,6 +23,9 @@ type Props = {
 };
 
 export default function CourseListItem({ title, classroom, schedule, semester, studentsCount = 0, variant = 'row', onPress, onEdit, onDelete, onShareCode }: Props) {
+  const { config } = useConfig();
+  const HEX = config.lightMode ? lightColors : darkColors;
+  const isWeb = Platform.OS === 'web';
   // Iniciales del título para avatar en variante 'row'.
   const initials = title
     .split(' ')
@@ -37,12 +41,32 @@ export default function CourseListItem({ title, classroom, schedule, semester, s
   if (variant === 'tile') {
     return (
       <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={styles.touch}>
-        <View style={styles.tileCard}>
+        <View
+          style={[
+            styles.tileCard,
+            isWeb
+              ? ({
+                  backgroundColor: config.lightMode ? 'rgba(255,255,255,0.85)' : 'rgba(20,25,35,0.5)',
+                  backdropFilter: 'blur(6px)',
+                  WebkitBackdropFilter: 'blur(6px)',
+                  boxShadow: config.lightMode ? '0 8px 24px rgba(0,0,0,0.06)' : undefined,
+                } as any)
+              : ({
+                  backgroundColor: HEX.card,
+                  shadowColor: '#000',
+                  shadowOpacity: config.lightMode ? 0.10 : 0.25,
+                  shadowRadius: config.lightMode ? 10 : 16,
+                  shadowOffset: { width: 0, height: 6 },
+                  elevation: config.lightMode ? 4 : 6,
+                } as any),
+            { borderColor: HEX.border },
+          ]}
+        >
           {(onEdit || onDelete || onShareCode) && (
             <View style={styles.tileActions}>
               {onEdit && (
                 <TouchableOpacity onPress={onEdit} style={styles.actionIconBtn}>
-                  <MaterialCommunityIcons name="pencil" size={14} color={darkColors.accent} />
+                  <MaterialCommunityIcons name="pencil" size={14} color={HEX.accent} />
                 </TouchableOpacity>
               )}
               {onDelete && (
@@ -52,42 +76,42 @@ export default function CourseListItem({ title, classroom, schedule, semester, s
               )}
               {onShareCode && (
                 <TouchableOpacity onPress={onShareCode} style={styles.actionIconBtn}>
-                  <MaterialCommunityIcons name="key" size={14} color={darkColors.primary} />
+                  <MaterialCommunityIcons name="key" size={14} color={HEX.primary} />
                 </TouchableOpacity>
               )}
             </View>
           )}
           <View style={styles.tileAvatarWrap}>
             <View style={styles.tileAvatar}>
-              <MaterialCommunityIcons name="book-open-variant" size={28} color={darkColors.primary} />
+              <MaterialCommunityIcons name="book-open-variant" size={28} color={HEX.primary} />
             </View>
           </View>
           <View style={styles.tileInfo}>
-            <Text style={styles.tileName}>{title}</Text>
+            <Text style={[styles.tileName, { color: HEX.text }]}>{title}</Text>
             {!!badgeText && (
-              <View style={styles.tileBadge}>
-                <Text style={styles.tileBadgeText}>{badgeText}</Text>
+              <View style={[styles.tileBadge, { borderColor: 'rgba(110,120,255,0.3)', backgroundColor: 'rgba(110,120,255,0.12)' }]}> 
+                <Text style={[styles.tileBadgeText, { color: HEX.primary }]}>{badgeText}</Text>
               </View>
             )}
             <View style={styles.tileMeta}>
               {!!schedule && (
                 <View style={styles.metaRow}>
-                  <MaterialCommunityIcons name="clock-outline" size={14} color={darkColors.mutedText} />
-                  <Text style={styles.metaText}>{schedule}</Text>
+                  <MaterialCommunityIcons name="clock-outline" size={14} color={HEX.mutedText} />
+                  <Text style={[styles.metaText, { color: HEX.mutedText }]}>{schedule}</Text>
                 </View>
               )}
               <View style={styles.metaRow}>
-                <MaterialCommunityIcons name="account-group" size={14} color={darkColors.mutedText} />
-                <Text style={styles.metaText}>{studentsCount} estudiantes</Text>
+                <MaterialCommunityIcons name="account-group" size={14} color={HEX.mutedText} />
+                <Text style={[styles.metaText, { color: HEX.mutedText }]}>{studentsCount} estudiantes</Text>
               </View>
             </View>
 
             {!!onShareCode && (
               <View style={styles.tileBottomRow}>
                 <TouchableOpacity onPress={onShareCode}>
-                  <View style={styles.tileBottomPill}>
-                    <MaterialCommunityIcons name="key" size={14} color={darkColors.primary} />
-                    <Text style={styles.tileBottomText}>Código</Text>
+                  <View style={[styles.tileBottomPill, { borderColor: 'rgba(110,120,255,0.3)', backgroundColor: 'rgba(110,120,255,0.12)' }]}> 
+                    <MaterialCommunityIcons name="key" size={14} color={HEX.primary} />
+                    <Text style={[styles.tileBottomText, { color: HEX.primary }]}>Código</Text>
                   </View>
                 </TouchableOpacity>
               </View>
@@ -101,33 +125,53 @@ export default function CourseListItem({ title, classroom, schedule, semester, s
   // Variante 'row': ítem de lista con avatar, metadatos y acciones.
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.touch}>
-      <View style={styles.card}>
+      <View
+        style={[
+          styles.card,
+          isWeb
+            ? ({
+                backgroundColor: config.lightMode ? 'rgba(255,255,255,0.85)' : 'rgba(20,25,35,0.5)',
+                backdropFilter: 'blur(6px)',
+                WebkitBackdropFilter: 'blur(6px)',
+                boxShadow: config.lightMode ? '0 8px 24px rgba(0,0,0,0.06)' : undefined,
+              } as any)
+            : ({
+                backgroundColor: HEX.card,
+                shadowColor: '#000',
+                shadowOpacity: config.lightMode ? 0.10 : 0.25,
+                shadowRadius: config.lightMode ? 10 : 16,
+                shadowOffset: { width: 0, height: 6 },
+                elevation: config.lightMode ? 4 : 6,
+              } as any),
+          { borderColor: HEX.border },
+        ]}
+      >
         <View style={styles.left}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials}</Text>
+            <Text style={[styles.avatarText, { color: HEX.primary }]}>{initials}</Text>
           </View>
           <View style={styles.info}>
-            <Text style={styles.name}>{title}</Text>
+            <Text style={[styles.name, { color: HEX.text }]}>{title}</Text>
             <View style={styles.metaRow}>
-              {!!badgeText && <Text style={styles.metaText}>{badgeText}</Text>}
+              {!!badgeText && <Text style={[styles.metaText, { color: HEX.mutedText }]}>{badgeText}</Text>}
             </View>
             {!!schedule && (
               <View style={styles.metaRow}>
-                <MaterialCommunityIcons name="clock-outline" size={14} color={darkColors.mutedText} />
-                <Text style={styles.metaText}>{schedule}</Text>
+                <MaterialCommunityIcons name="clock-outline" size={14} color={HEX.mutedText} />
+                <Text style={[styles.metaText, { color: HEX.mutedText }]}>{schedule}</Text>
               </View>
             )}
           </View>
         </View>
         <View style={styles.right}>
           <View style={styles.statusBadge}>
-            <Text style={styles.statusText}>{studentsCount} alumnos</Text>
+            <Text style={[styles.statusText, { color: config.lightMode ? HEX.text : '#fff' }]}>{studentsCount} alumnos</Text>
           </View>
           {(onEdit || onDelete) && (
             <View style={styles.rowActions}>
               {onEdit && (
                 <TouchableOpacity onPress={onEdit}>
-                  <MaterialCommunityIcons name="pencil" size={16} color={darkColors.accent} />
+                  <MaterialCommunityIcons name="pencil" size={16} color={HEX.accent} />
                 </TouchableOpacity>
               )}
               {onDelete && (
@@ -137,7 +181,7 @@ export default function CourseListItem({ title, classroom, schedule, semester, s
               )}
             </View>
           )}
-          <MaterialCommunityIcons name="chevron-right" size={20} color={darkColors.mutedText} />
+          <MaterialCommunityIcons name="chevron-right" size={20} color={HEX.mutedText} />
         </View>
       </View>
     </TouchableOpacity>

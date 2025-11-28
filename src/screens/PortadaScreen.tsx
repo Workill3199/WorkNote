@@ -1,19 +1,17 @@
-// Pantalla de selección de rol (raíz).
-// Permite elegir entre Profesor o Alumno y navega al registro.
 import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { fonts } from '../theme/typography';
 import { darkColors, lightColors } from '../theme/colors';
+import { fonts } from '../theme/typography';
 import NeonButton from '../components/NeonButton';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useConfig } from '../context/ConfigContext';
 
 type Props = NativeStackScreenProps<any>;
 
-export default function RegisterRoleScreen({ navigation }: Props) {
-  const { colors } = useTheme(); // colores del tema
+export default function PortadaScreen({ navigation }: Props) {
+  const { colors } = useTheme();
   const palette = colors.background === darkColors.background ? darkColors : lightColors;
   const { config, setLightMode, save } = useConfig();
   const isWeb = (typeof window !== 'undefined');
@@ -25,8 +23,10 @@ export default function RegisterRoleScreen({ navigation }: Props) {
     }
   };
 
+  const heroSource = config.lightMode ? require('../../assets/logoL.png') : require('../../assets/principal.png');
+
   return (
-    <View style={[styles.screen, { backgroundColor: colors.background }] }>
+    <View style={[styles.container, { backgroundColor: colors.background }] }>
       <View style={{ position: 'absolute', right: 16, top: 16 }}>
         <TouchableOpacity
           onPress={onToggleTheme}
@@ -43,46 +43,46 @@ export default function RegisterRoleScreen({ navigation }: Props) {
           <Text style={{ color: colors.text, fontFamily: fonts.medium, fontSize: 12 }}>{config.lightMode ? 'Oscuro' : 'Claro'}</Text>
         </TouchableOpacity>
       </View>
-      {/* Logo superior */}
+      {/* Logo y marca (igual al login) */}
       <View style={styles.logoWrap}>
-        <Image source={require('../../assets/logoA.png')} style={styles.logoImage} resizeMode="contain" />
+        <Image source={heroSource} style={styles.heroImage} resizeMode="contain" />
       </View>
       <Text style={[styles.brand, { color: colors.text }]} accessibilityRole="header">WorkNote</Text>
 
-      {/* Título y subtítulo */}
-      <Text style={[styles.title, { color: colors.text }]}>Crear cuenta</Text>
-      <Text style={[styles.subtitle, { color: colors.text }]}>Elige tu rol para continuar</Text>
+      {/* Título y subtítulo con la misma tipografía */}
+      <Text style={[styles.title, { color: colors.text }]}>Bienvenido a WorkNote</Text>
+      <Text style={[styles.subtitle, { color: colors.text }]}>Elige cómo quieres empezar</Text>
 
-      <View style={{ gap: 12, marginTop: 8 }}>
-        {/* Acción: ir a registro como profesor */}
-        <NeonButton
-          title="Registrarse como Profesor"
-          onPress={async () => { navigation.navigate('Register', { role: 'profesor' }); }}
-          colors={{ ...colors, primary: palette.primary } as any}
-          style={styles.button}
-          textStyle={styles.buttonText}
-        />
-        {/* Acción: ir a registro como alumno */}
-        <NeonButton
-          title="Registrarse como Alumno"
-          onPress={async () => { navigation.navigate('Register', { role: 'alumno' }); }}
-          colors={{ ...colors, primary: palette.accent } as any}
-          style={[styles.button]}
-          textStyle={styles.buttonText}
-        />
-      </View>
+      {/* Botón principal: mismo NeonButton que en Login */}
+      <NeonButton
+        title="Iniciar sesión"
+        onPress={() => navigation.navigate('Login')}
+        colors={{ ...colors, text: '#fff' }}
+        style={styles.button}
+        textStyle={[styles.buttonText, { color: '#fff' }]}
+      />
+
+      {/* Botón secundario con efecto neón usando success */}
+      <NeonButton
+        title="Crear cuenta"
+        onPress={() => navigation.navigate('RegisterRole')}
+        colors={{ ...colors, primary: palette.success }}
+        style={styles.button}
+        textStyle={styles.buttonText}
+        shadowRadius={16}
+        elevation={10}
+      />
     </View>
   );
 }
 
-// Estilos base consistentes con el tema
 const styles = StyleSheet.create({
-  screen: { flex: 1, paddingHorizontal: 16, justifyContent: 'center' },
+  container: { flex: 1, paddingHorizontal: 24, justifyContent: 'center' },
   logoWrap: { alignItems: 'center', marginBottom: 12 },
-  logoImage: { width: 72, height: 72 },
+  heroImage: { width: 280, height: 280 },
   brand: { fontSize: 24, fontFamily: fonts.brand, textAlign: 'center', marginBottom: 8 },
   title: { fontSize: 28, fontFamily: fonts.brand, textAlign: 'center' },
   subtitle: { fontSize: 14, fontFamily: fonts.medium, textAlign: 'center', marginTop: 6, marginBottom: 18 },
   button: { paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginTop: 8 },
-  buttonText: { fontSize: 15, fontFamily: fonts.bold },
+  buttonText: { fontSize: 16, fontFamily: fonts.bold },
 });

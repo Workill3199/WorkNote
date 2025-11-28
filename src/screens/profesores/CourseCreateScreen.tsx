@@ -15,7 +15,22 @@ export default function CourseCreateScreen({ navigation, route }: Props) {
   const [title, setTitle] = useState(editItem?.title || '');
   const [description, setDescription] = useState(editItem?.description || '');
   const [classroom, setClassroom] = useState(editItem?.classroom || '');
-  const [schedule, setSchedule] = useState(editItem?.schedule || '');
+  // Horario opcional en un único input con máscara HH:MM - HH:MM
+  const [schedule, setSchedule] = useState((editItem?.schedule || '').trim());
+  const maskSchedule = (raw: string) => {
+    const d = raw.replace(/\D/g, '').slice(0, 8); // HHMMHHMM
+    const h1 = d.slice(0, 2);
+    const m1 = d.slice(2, 4);
+    const h2 = d.slice(4, 6);
+    const m2 = d.slice(6, 8);
+    let out = '';
+    if (h1) out += h1;
+    if (m1) out += ':' + m1;
+    if (h2) out += ' - ' + h2;
+    if (m2) out += ':' + m2;
+    return out;
+  };
+  const handleScheduleChange = (text: string) => setSchedule(maskSchedule(text));
   const [semester, setSemester] = useState(editItem?.semester || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,12 +39,19 @@ export default function CourseCreateScreen({ navigation, route }: Props) {
   const onSave = async () => {
     setError(null);
     if (!title.trim()) { setError('El título es obligatorio'); return; }
+    // Valida el horario si se ingresó
+    const pattern = /^([01]\d|2[0-3]):([0-5]\d)\s*-\s*([01]\d|2[0-3]):([0-5]\d)$/;
+    const scheduleValue = schedule.trim();
+    if (scheduleValue && !pattern.test(scheduleValue)) {
+      setError('Formato de horario inválido. Usa HH:MM - HH:MM');
+      return;
+    }
     setLoading(true);
     try {
       if (editItem?.id) {
-        await updateCourse(editItem.id, { title: title.trim(), description: description.trim(), classroom: classroom.trim(), schedule: schedule.trim(), semester: semester.trim() });
+        await updateCourse(editItem.id, { title: title.trim(), description: description.trim(), classroom: classroom.trim(), schedule: scheduleValue, semester: semester.trim() });
       } else {
-        await createCourse({ title: title.trim(), description: description.trim(), classroom: classroom.trim(), schedule: schedule.trim(), semester: semester.trim() });
+        await createCourse({ title: title.trim(), description: description.trim(), classroom: classroom.trim(), schedule: scheduleValue, semester: semester.trim() });
       }
       navigation.goBack();
     } catch (e: any) {
@@ -72,14 +94,17 @@ export default function CourseCreateScreen({ navigation, route }: Props) {
           onChangeText={setClassroom}
         />
 
-        <Text style={[styles.label, { color: colors.text }]}>Horario</Text>
+        <Text style={[styles.label, { color: colors.text }]}>Horario (opcional)</Text>
         <TextInput
           style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-          placeholder="Lunes, Miércoles 8:00-9:30"
+          placeholder="HH:MM - HH:MM"
           placeholderTextColor={colors.text}
           value={schedule}
-          onChangeText={setSchedule}
+          onChangeText={handleScheduleChange}
+          maxLength={13}
+          inputMode="numeric"
         />
+        <Text style={[styles.hint, { color: colors.mutedText ?? colors.text }]}>Formato 24h. Ej: 08:00 - 09:30</Text>
 
         <Text style={[styles.label, { color: colors.text }]}>Semestre</Text>
         <TextInput
@@ -104,6 +129,8 @@ const styles = StyleSheet.create({
   formCard: { borderWidth: 1, borderRadius: 12, padding: 12, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 6, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
   label: { fontSize: 12, fontWeight: '700', marginBottom: 6 },
   input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12, fontSize: 16 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  hint: { fontSize: 12, marginTop: -6, marginBottom: 8 },
   button: { paddingVertical: 12, borderRadius: 10, alignItems: 'center', marginTop: 4 },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   error: { color: '#d32f2f', marginBottom: 12, textAlign: 'center' },

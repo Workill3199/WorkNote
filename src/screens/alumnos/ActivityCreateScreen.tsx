@@ -255,6 +255,6 @@ const styles = StyleSheet.create({
   },
   chipActive: { borderColor: 'rgba(110,120,255,0.5)', backgroundColor: 'rgba(110,120,255,0.10)' },
   chipText: { color: darkColors.mutedText, fontSize: 12 },
-  chipTextActive: { color: darkColors.primary },
+    chipTextActive: { color: '#fff' },
   hint: { fontSize: 11, color: darkColors.mutedText, marginBottom: 12 },
 });

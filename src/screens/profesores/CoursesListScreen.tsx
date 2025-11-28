@@ -1,21 +1,28 @@
 // Pantalla de listado de cursos para profesores.
 // Permite buscar, unirse por código, crear, editar y eliminar cursos.
 import React, { useEffect, useMemo, useState } from 'react'; // React y hooks básicos
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, TextInput, Platform } from 'react-native'; // Componentes RN
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, TextInput, Platform, useWindowDimensions, type DimensionValue } from 'react-native'; // Componentes RN
 import { useTheme } from '@react-navigation/native'; // Acceso a colores del tema
 import { NativeStackScreenProps } from '@react-navigation/native-stack'; // Tipos de navegación
 import { listCourses, Course, deleteCourse, joinCourseByShareCode, ensureCourseShareCode } from '../../services/courses'; // Servicios de cursos
 import { auth } from '../../config/firebase'; // Autenticación (para verificar dueño de curso)
 import { listStudentsByCourse } from '../../services/students'; // Servicio para contar estudiantes por curso
 import CourseListItem from '../../components/CourseListItem'; // Item para grid web
-import { darkColors } from '../../theme/colors'; // Paleta fija
+import { darkColors, lightColors } from '../../theme/colors'; // Paleta fija
 import { fonts } from '../../theme/typography'; // Tipografías
+import { useConfig } from '../../context/ConfigContext';
 
 // Tipos de props de navegación
 type Props = NativeStackScreenProps<any>;
 
 export default function CoursesListScreen({ navigation }: Props) {
+  const { config } = useConfig();
+  const { width } = useWindowDimensions();
+  const cols = width < 420 ? 1 : width < 768 ? 2 : 3;
+  const itemWidth: DimensionValue = `${100 / cols}%`;
   const { colors } = useTheme(); // Colores del tema
+  const HEX = config.lightMode ? lightColors : darkColors;
+  const isWeb = Platform.OS === 'web';
   const [items, setItems] = useState<Course[]>([]); // Lista de cursos
   const [studentCounts, setStudentCounts] = useState<Record<string, number>>({}); // Conteos por curso
   const [loading, setLoading] = useState(true); // Indicador de carga
@@ -83,13 +90,13 @@ export default function CoursesListScreen({ navigation }: Props) {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }] }>
       {/* Header estilo dashboard */}
-      <View style={[styles.header, { borderBottomColor: darkColors.border }] }>
+      <View style={[styles.header, { borderBottomColor: HEX.border }] }>
         <Text style={[styles.title, { color: colors.text }]}>Cursos</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <TouchableOpacity style={[styles.addBtn, { backgroundColor: darkColors.accent }]} onPress={() => setJoinOpen(v => !v)}> 
+          <TouchableOpacity style={[styles.addBtn, { backgroundColor: HEX.accent }]} onPress={() => setJoinOpen(v => !v)}> 
             <Text style={styles.addText}>Unirme</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.addBtn, { backgroundColor: darkColors.primary }]} onPress={() => navigation.navigate('CourseCreate')}> 
+          <TouchableOpacity style={[styles.addBtn, { backgroundColor: HEX.primary }]} onPress={() => navigation.navigate('CourseCreate')}> 
             <Text style={styles.addText}>+ Agregar</Text>
           </TouchableOpacity>
         </View>
@@ -101,21 +108,26 @@ export default function CoursesListScreen({ navigation }: Props) {
           <View
             style={[
               styles.joinBox,
-              Platform.OS === 'web'
-                ? ({ backgroundColor: 'rgba(20,25,35,0.5)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' } as any)
-                : { backgroundColor: darkColors.card },
+              isWeb
+                ? ({
+                    backgroundColor: config.lightMode ? 'rgba(255,255,255,0.85)' : 'rgba(20,25,35,0.5)',
+                    backdropFilter: 'blur(6px)',
+                    WebkitBackdropFilter: 'blur(6px)',
+                  } as any)
+                : ({ backgroundColor: HEX.card } as any),
+              { borderColor: HEX.border },
             ]}
           >
             <TextInput
               placeholder="Código de clase (ABC123)"
-              placeholderTextColor={darkColors.mutedText}
+              placeholderTextColor={HEX.mutedText}
               value={joinCode}
               onChangeText={setJoinCode}
-              style={styles.joinInput}
+              style={[styles.joinInput, { color: HEX.text }]}
               autoCapitalize="characters"
             />
             <TouchableOpacity
-              style={[styles.joinBtn, { backgroundColor: darkColors.accent }]}
+              style={[styles.joinBtn, { backgroundColor: HEX.accent }]}
               onPress={async () => {
                 if (!joinCode.trim()) return;
                 setJoining(true);
@@ -147,17 +159,18 @@ export default function CoursesListScreen({ navigation }: Props) {
         <View
           style={[
             styles.searchBox,
-            Platform.OS === 'web'
-              ? ({ backgroundColor: 'rgba(20,25,35,0.5)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' } as any)
-              : { backgroundColor: darkColors.card },
+            isWeb
+              ? ({ backgroundColor: config.lightMode ? 'rgba(255,255,255,0.85)' : 'rgba(20,25,35,0.5)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' } as any)
+              : ({ backgroundColor: HEX.card } as any),
+            { borderColor: HEX.border },
           ]}
         >
           <TextInput
             placeholder="Buscar por título, aula u horario"
-            placeholderTextColor={darkColors.mutedText}
+            placeholderTextColor={HEX.mutedText}
             value={query}
             onChangeText={setQuery}
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: HEX.text }]}
           />
         </View>
       </View>
@@ -174,7 +187,7 @@ export default function CoursesListScreen({ navigation }: Props) {
       {!loading && (
         <View style={styles.grid}>
           {filtered.map((item) => (
-            <View key={item.id} style={styles.gridItem}>
+            <View key={item.id} style={[styles.gridItem, { width: itemWidth }] }>
               <CourseListItem
                 title={item.title}
                 classroom={item.classroom}
@@ -217,7 +230,7 @@ const styles = StyleSheet.create({
   // Diseño: chips y grid
   // filtros de semestre removidos
   grid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 }, // Grid web
-  gridItem: { width: '50%', paddingHorizontal: 4 }, // Item half-width
+  gridItem: { width: '50%' as DimensionValue, paddingHorizontal: 4 }, // Item half-width
 });
   const viewShareCode = async (courseId?: string) => {
     if (!courseId) return;

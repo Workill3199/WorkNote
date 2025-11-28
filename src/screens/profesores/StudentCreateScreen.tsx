@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6, borderColor: '#404652', backgroundColor: '#0f1420' },
   chipActive: { borderColor: 'rgba(110,120,255,0.5)', backgroundColor: 'rgba(110,120,255,0.10)' },
   chipText: { color: '#9aa3b2', fontSize: 12 },
-  chipTextActive: { color: '#7c86ff' },
+    chipTextActive: { color: '#fff' },
   menu: { borderWidth: 1, borderRadius: 10, marginTop: 8, maxHeight: 200, overflow: 'hidden' },
   menuItem: { paddingHorizontal: 10, paddingVertical: 8, borderBottomWidth: 1 },
 });

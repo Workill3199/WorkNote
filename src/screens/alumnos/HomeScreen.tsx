@@ -11,6 +11,7 @@ import { listWorkshops } from '../../services/workshops';
 import { listStudents } from '../../services/students';
 import { listActivities } from '../../services/activities';
 import { darkColors, lightColors } from '../../theme/colors';
+import { useConfig } from '../../context/ConfigContext';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<any>;
@@ -20,6 +21,7 @@ const { width } = Dimensions.get('window');
 export default function HomeScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const palette = colors.background === darkColors.background ? darkColors : lightColors;
+  const { config, setLightMode, save } = useConfig();
   const insets = useSafeAreaInsets();
   const user = auth?.currentUser || null;
   const username = user?.displayName || user?.email?.split('@')[0] || 'Alex';
@@ -78,19 +80,32 @@ export default function HomeScreen({ navigation }: Props) {
               <Image source={{ uri: photoURL }} style={styles.avatar} />
             ) : (
               <View style={[styles.avatarFallback, { backgroundColor: palette.primary }]}>
-                <Text style={[styles.avatarText, { color: '#fff' }]}>{initial}</Text>
+                <Text style={[styles.avatarText, { color: colors.text }]}>{initial}</Text>
               </View>
             )}
           </TouchableOpacity>
           <View>
             <View style={styles.greetingRow}>
-              <Text style={[styles.greeting, { color: '#fff' }]}>¡Hola, {username}!</Text>
+              <Text style={[styles.greeting, { color: colors.text }]}>¡Hola, {username}!</Text>
               <TouchableOpacity style={styles.editProfileBtn} onPress={() => navigation.navigate('ProfileSettings')} accessibilityLabel="Editar perfil">
-                <MaterialCommunityIcons name="account-edit" size={18} color="#fff" />
+                <MaterialCommunityIcons name="account-edit" size={18} color={colors.text} />
               </TouchableOpacity>
             </View>
             <Text style={[styles.subtitle, { color: palette.textSecondary }]}>Aquí tienes el resumen</Text>
           </View>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity
+            onPress={async () => { setLightMode(!config.lightMode); await save(); }}
+            accessibilityLabel={config.lightMode ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro'}
+            style={[styles.themeToggle, { backgroundColor: palette.secondary, borderColor: colors.border }]}
+          >
+            <MaterialCommunityIcons
+              name={config.lightMode ? 'moon-waning-crescent' : 'white-balance-sunny'}
+              size={18}
+              color={colors.text}
+            />
+          </TouchableOpacity>
         </View>
         {/* Campana removida del header según solicitud */}
       </View>
@@ -303,6 +318,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
+  themeToggle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
   avatarContainer: {
     width: 40,
     height: 40,
@@ -323,11 +346,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '600',
   },
   greeting: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
     lineHeight: 18,
   },
@@ -342,7 +365,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 15,
     marginTop: 2,
   },
   notificationButton: {
@@ -384,7 +407,7 @@ const styles = StyleSheet.create({
   },
   navLabel: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 13,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -407,12 +430,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
     lineHeight: 24,
   },
   statLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '500',
     textAlign: 'center',
     marginTop: 2,
@@ -422,6 +445,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+    boxShadow: '0 6px 16px rgba(0,0,0,0.08)'
   },
   cardHeader: {
     flexDirection: 'row',
@@ -495,6 +524,12 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+    boxShadow: '0 6px 16px rgba(0,0,0,0.08)'
   },
   actionLabel: {
     fontSize: 12,
@@ -512,6 +547,12 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+    boxShadow: '0 6px 16px rgba(0,0,0,0.08)'
   },
   deadlineContent: {
     flex: 1,

@@ -7,6 +7,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import LoginScreen from './src/screens/LoginScreen';
+import PortadaScreen from './src/screens/PortadaScreen';
+import BootstrapScreen from './src/screens/BootstrapScreen';
 import RegisterScreen from './src/screens/profesores/RegisterScreen';
 import RegisterRoleScreen from './src/screens/RegisterRoleScreen';
 import HomeScreen from './src/screens/profesores/HomeScreen';
@@ -20,12 +22,13 @@ import ActivitySubmissionsScreen from './src/screens/profesores/ActivitySubmissi
 import StudentsListScreen from './src/screens/profesores/StudentsListScreen';
 import StudentCreateScreen from './src/screens/profesores/StudentCreateScreen';
 import AttendanceScreen from './src/screens/profesores/AttendanceScreen';
-import { DarkThemeCustom } from './src/theme/navigation';
-import { darkColors } from './src/theme/colors';
+import { DarkThemeCustom, LightThemeCustom } from './src/theme/navigation';
+import { useConfig } from './src/context/ConfigContext';
+import { darkColors, lightColors } from './src/theme/colors';
 import MoreScreen from './src/screens/profesores/MoreScreen';
 import ProfileSettingsScreen from './src/screens/profesores/ProfileSettingsScreen';
 import React from 'react';
-import { ConfigProvider, useConfig } from './src/context/ConfigContext';
+import { ConfigProvider } from './src/context/ConfigContext';
 import NotificationsSettingsScreen from './src/screens/profesores/NotificationsSettingsScreen';
 import PrivacySettingsScreen from './src/screens/profesores/PrivacySettingsScreen';
 import PrivacyPolicyScreen from './src/screens/profesores/PrivacyPolicyScreen';
@@ -45,6 +48,8 @@ const Tab = createBottomTabNavigator();
 
 // Navegación de pestañas para profesores (Inicio, Clases, Estudiantes, Actividades).
 function MainTabs() {
+  const { config } = useConfig();
+  const palette = config.lightMode ? lightColors : darkColors;
   const isWeb = Platform.OS === 'web';
   const [navOpacity, setNavOpacity] = React.useState(0.98);
   const [navBlur, setNavBlur] = React.useState(24);
@@ -81,33 +86,34 @@ function MainTabs() {
                   bottom: 0,
                   width: '100%',
                   zIndex: 100,
-                  backgroundColor: `rgba(10, 14, 26, ${navOpacity})`, // #0a0e1a con transparencia dinámica
+                  backgroundColor: config.lightMode ? `rgba(255, 255, 255, ${Math.max(0.8, navOpacity)})` : `rgba(10, 14, 26, ${navOpacity})`, // #0a0e1a con transparencia dinámica
                   backdropFilter: `blur(${navBlur}px)`,
                   WebkitBackdropFilter: `blur(${navBlur}px)`,
-                  borderTopColor: 'rgba(255,255,255,0.1)', // border-white/10
+                  borderTopColor: config.lightMode ? lightColors.border : 'rgba(255,255,255,0.1)', // border-white/10
                   borderTopWidth: 1,
-                  boxShadow: '0 -4px 20px rgba(0,0,0,0.3)',
+                  boxShadow: config.lightMode ? '0 -6px 18px rgba(0,0,0,0.08)' : '0 -4px 20px rgba(0,0,0,0.3)',
                   paddingBottom: 10,
                   paddingTop: 10,
                 } as any)
               : {
                   // En móvil, fondo oscuro casi opaco y sombra suave (sin blur)
-                  backgroundColor: 'rgba(10, 14, 26, 0.98)',
-                  borderTopColor: 'rgba(255,255,255,0.1)',
+                  backgroundColor: config.lightMode ? 'rgba(255, 255, 255, 0.98)' : 'rgba(10, 14, 26, 0.98)',
+                  borderTopColor: config.lightMode ? lightColors.border : 'rgba(255,255,255,0.1)',
                   borderTopWidth: 1,
                   shadowColor: '#000',
-                  shadowOpacity: 0.3,
-                  shadowRadius: 20,
+                  shadowOpacity: config.lightMode ? 0.12 : 0.3,
+                  shadowRadius: config.lightMode ? 12 : 20,
                   shadowOffset: { width: 0, height: -4 },
-                  elevation: 12,
+                  elevation: config.lightMode ? 8 : 12,
                   display:  "flex",
                 }
           ),
           tabBarItemStyle: { paddingVertical: 6 },
           tabBarIconStyle: { marginBottom: 0 },
-          tabBarActiveTintColor: darkColors.primary,
-          tabBarInactiveTintColor: darkColors.mutedText,
+          tabBarActiveTintColor: palette.primary,
+          tabBarInactiveTintColor: palette.mutedText,
           tabBarLabelStyle: { fontFamily: fonts.medium, fontSize: 12 },
+          tabBarAllowFontScaling: false,
           tabBarIcon: ({ color, size }) => {
             const iconSize = 20;
             const name =
@@ -137,6 +143,8 @@ function MainTabs() {
 
 // Navegación de pestañas para alumnos (Inicio, Cursos, Actividades).
 function StudentTabs() {
+  const { config } = useConfig();
+  const palette = config.lightMode ? lightColors : darkColors;
   const isWeb = Platform.OS === 'web';
   const [navOpacity, setNavOpacity] = React.useState(0.98);
   const [navBlur, setNavBlur] = React.useState(24);
@@ -172,32 +180,33 @@ function StudentTabs() {
                   bottom: 0,
                   width: '100%',
                   zIndex: 100,
-                  backgroundColor: `rgba(10, 14, 26, ${navOpacity})`,
+                  backgroundColor: config.lightMode ? `rgba(255, 255, 255, ${Math.max(0.8, navOpacity)})` : `rgba(10, 14, 26, ${navOpacity})`,
                   backdropFilter: `blur(${navBlur}px)`,
                   WebkitBackdropFilter: `blur(${navBlur}px)`,
-                  borderTopColor: 'rgba(255,255,255,0.1)',
+                  borderTopColor: config.lightMode ? lightColors.border : 'rgba(255,255,255,0.1)',
                   borderTopWidth: 1,
-                  boxShadow: '0 -4px 20px rgba(0,0,0,0.3)',
+                  boxShadow: config.lightMode ? '0 -6px 18px rgba(0,0,0,0.08)' : '0 -4px 20px rgba(0,0,0,0.3)',
                   paddingBottom: 10,
                   paddingTop: 10,
                 } as any)
               : {
-                  backgroundColor: 'rgba(10, 14, 26, 0.98)',
-                  borderTopColor: 'rgba(255,255,255,0.1)',
+                  backgroundColor: config.lightMode ? 'rgba(255, 255, 255, 0.98)' : 'rgba(10, 14, 26, 0.98)',
+                  borderTopColor: config.lightMode ? lightColors.border : 'rgba(255,255,255,0.1)',
                   borderTopWidth: 1,
                   shadowColor: '#000',
-                  shadowOpacity: 0.3,
-                  shadowRadius: 20,
+                  shadowOpacity: config.lightMode ? 0.12 : 0.3,
+                  shadowRadius: config.lightMode ? 12 : 20,
                   shadowOffset: { width: 0, height: -4 },
-                  elevation: 12,
+                  elevation: config.lightMode ? 8 : 12,
                   display:  'flex',
                 }
           ),
           tabBarItemStyle: { paddingVertical: 6 },
           tabBarIconStyle: { marginBottom: 0 },
-          tabBarActiveTintColor: darkColors.primary,
-          tabBarInactiveTintColor: darkColors.mutedText,
+          tabBarActiveTintColor: palette.primary,
+          tabBarInactiveTintColor: palette.mutedText,
           tabBarLabelStyle: { fontFamily: fonts.medium, fontSize: 12 },
+          tabBarAllowFontScaling: false,
           tabBarIcon: ({ color, size }) => {
             const iconSize = 20;
             const name =
@@ -222,18 +231,22 @@ function StudentTabs() {
 
 // Contenedor principal de navegación (stack): define rutas y opciones de header.
 function AppNavigation() {
-  const theme = DarkThemeCustom;
-  const headerColors = { card: darkColors.card, text: darkColors.text };
+  const { config } = useConfig();
+  const theme = config.lightMode ? LightThemeCustom : DarkThemeCustom;
+  const headerColors = { card: config.lightMode ? lightColors.card : darkColors.card, text: config.lightMode ? lightColors.text : darkColors.text };
 
   return (
     <NavigationContainer theme={theme}>
       <Stack.Navigator
+        initialRouteName="Bootstrap"
         screenOptions={{
           headerStyle: { backgroundColor: headerColors.card },
-          headerTintColor: '#fff',
+          headerTintColor: headerColors.text,
           headerTitleStyle: { fontFamily: fonts.bold },
         }}
       >
+        <Stack.Screen name="Bootstrap" component={BootstrapScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Portada" component={PortadaScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }}/>
         <Stack.Screen name="RegisterRole" component={RegisterRoleScreen} options={{ title: 'Elegir rol' }} />
         <Stack.Screen name="Register" component={RegisterScreen}  options={{ headerShown: false }} />
@@ -247,6 +260,8 @@ function AppNavigation() {
         <Stack.Screen name="Activities" component={ActivitiesListScreen} options={{ title: 'Actividades' }} />
         <Stack.Screen name="ActivitySubmissions" component={ActivitySubmissionsScreen} options={{ title: 'Entregas' }} />
         <Stack.Screen name="ActivityCreate" component={ActivityCreateScreen} options={{ title: 'Nueva Actividad' }} />
+        {/* Detalle para alumnos */}
+        <Stack.Screen name="ActivityDetail" component={require('./src/screens/alumnos/ActivityDetailScreen').default} options={{ title: 'Detalle de Actividad' }} />
         <Stack.Screen name="Students" component={StudentsListScreen} options={{ title: 'Estudiantes' }} />
         {/* Ruta específica para alumnos: listado de estudiantes sin acciones de profesor */}
         <Stack.Screen name="StudentStudents" component={require('./src/screens/alumnos/StudentsListScreen').default} options={{ title: 'Estudiantes' }} />
@@ -279,13 +294,20 @@ export default function App() {
       if (TextAny.defaultProps == null) TextAny.defaultProps = {};
       TextAny.defaultProps.style = [
         TextAny.defaultProps.style,
-        { fontFamily: fonts.regular, color: '#fff', fontSize: 18, lineHeight: 24 },
+        { fontFamily: fonts.regular },
       ];
     }
   }, [fontsLoaded]);
 
   if (!fontsLoaded) {
-    return null;
+    const prefersLight = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+    const bg = prefersLight ? '#ffffff' : darkColors.background;
+    const fg = prefersLight ? '#222222' : '#ffffff';
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: bg }}>
+        <Text style={{ color: fg, fontFamily: fonts.medium }}>Cargando recursos…</Text>
+      </View>
+    );
   }
 
   return (

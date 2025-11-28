@@ -7,20 +7,40 @@ export interface UploadedFileResponse {
 export async function uploadFilesToServer(
   files: any[],
 ): Promise<UploadedFileResponse[]> {
-  const endpoint = "http://mayola.net.ar:9993/upload";
+  const endpoint =
+    process.env.EXPO_PUBLIC_UPLOAD_ENDPOINT ||
+    process.env.UPLOAD_ENDPOINT ||
+    "http://mayola.net.ar:9993/upload";
 
   const responses: UploadedFileResponse[] = [];
 
   for (const file of files) {
     const formData = new FormData();
 
-    formData.append("file", {
-      uri: file.uri,
-      name: file.name || "archivo",
-      type: file.mimeType || file.type || "application/octet-stream",
-    } as any);
+    // En web, si viene un File nativo, lo adjuntamos directamente para que axios envíe los bytes.
+    if (file?.fileRef) {
+      try {
+        formData.append("file", file.fileRef);
+      } catch {
+        // fallback por si el navegador requiere nombre
+        formData.append("file", file.fileRef, file?.fileRef?.name || file?.name || "archivo");
+      }
+    } else {
+      // En mobile/Expo, utilizamos el objeto con uri, nombre y tipo
+      formData.append("file", {
+        uri: file.uri,
+        name: file.name || "archivo",
+        type: file.mimeType || file.type || "application/octet-stream",
+      } as any);
+    }
 
-    formData.append("token", "OISAHJD)IU!@Haisjfd+ighr9uegh@*148rgfhweubidhj24gt9IUDHFSUH#*(Rh3");
+    const token =
+      process.env.EXPO_PUBLIC_UPLOAD_TOKEN ||
+      process.env.UPLOAD_TOKEN ||
+      "";
+    if (token) {
+      formData.append("token", token);
+    }
 
     try {
       const response = await axios.post(endpoint, formData, {

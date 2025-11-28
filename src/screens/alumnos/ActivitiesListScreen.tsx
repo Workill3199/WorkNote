@@ -14,7 +14,7 @@ import {
   } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@react-navigation/native";
-import { darkColors } from "../../theme/colors";
+import { darkColors, lightColors } from "../../theme/colors";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import {
   listActivities,
@@ -35,12 +35,15 @@ import { getDownloadURL, ref } from "firebase/storage";
   import { uploadBytes, getDownloadURL as getURL } from "firebase/storage";
 import * as FileSystem from "expo-file-system"; // Fallback para leer archivos locales en móvil
   import { FileUpload } from "../../components/files";
+import { scheduleHighPriorityNotifications, getPriorityByDueDate } from "../../utils/activityNotifications";
+import { useConfig } from "../../context/ConfigContext";
 
 type Props = NativeStackScreenProps<any>;
 
 export default function ActivitiesListScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  const { config } = useConfig();
   const [items, setItems] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -59,21 +62,25 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
   const [showClassFilter, setShowClassFilter] = useState(false);
   // Los alumnos no generan códigos; solo el profesor puede hacerlo.
 
-  // Tokens portados desde "actividades" basados en el tema oscuro
+  // Paleta dinámica por modo claro/oscuro
+  const palette = config.lightMode ? lightColors : darkColors;
   const T = {
-    bg: darkColors.background,
-    card: darkColors.card,
-    text: darkColors.text,
-    textMuted: darkColors.mutedText,
-    border: darkColors.border,
-    primary: darkColors.primary,
-    secondary: darkColors.secondary,
-    accent: darkColors.accent,
-    prioHigh: darkColors.error,
-    prioMedium: darkColors.warning,
-    prioLow: darkColors.success,
+    bg: palette.background,
+    card: palette.card,
+    text: palette.text,
+    textMuted: palette.mutedText,
+    border: palette.border,
+    primary: palette.primary,
+    secondary: palette.secondary,
+    accent: palette.accent,
+    prioHigh: palette.error,
+    prioMedium: palette.warning,
+    prioLow: palette.success,
   } as const;
   const HEX = T;
+  const isWeb = Platform.OS === 'web';
+  const surface = isWeb ? (config.lightMode ? 'rgba(255,255,255,0.60)' : 'rgba(42,42,58,0.7)') : T.card;
+  const blurFx = isWeb ? ({ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' } as any) : {};
   // Estado para entrega de actividad (modal)
   const [submitOpen, setSubmitOpen] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
@@ -154,6 +161,14 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
         data = merged;
       }
       setItems(data);
+      // Notificar actividades de alta prioridad si está habilitado y no hay silencio nocturno
+      try {
+        const hour = new Date().getHours();
+        const quietActive = config.quietHours && (hour >= 22 || hour < 7);
+        if (config.notifications && config.notificationChannels.actividades && !quietActive) {
+          await scheduleHighPriorityNotifications(data);
+        }
+      } catch {}
       // Normalización persistente de URLs antiguas de adjuntos guardadas en Firestore
       // Reescribe las URLs con `getDownloadURL` para evitar errores `o?name=` en el futuro
       try {
@@ -448,13 +463,8 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
         <View
           style={[
             styles.searchBox,
-            Platform.OS === "web"
-              ? ({
-                  backgroundColor: "rgba(42,42,58,0.7)",
-                  backdropFilter: "blur(8px)",
-                  WebkitBackdropFilter: "blur(8px)",
-                } as any)
-              : { backgroundColor: HEX.card },
+            { backgroundColor: surface, borderColor: T.border },
+            blurFx,
           ]}
         >
           <MaterialCommunityIcons name="magnify" size={16} color={T.accent} />
@@ -491,7 +501,7 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
                 style={[
                   styles.chipText,
                   active && styles.chipTextActive,
-                  { color: active ? T.bg : T.text },
+                  { color: active ? (config.lightMode ? T.bg : '#fff') : T.text },
                 ]}
               >
                 {f}
@@ -513,7 +523,7 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
             style={[
               styles.chipText,
               showClassFilter && styles.chipTextActive,
-              { color: showClassFilter ? T.bg : T.text },
+              { color: showClassFilter ? (config.lightMode ? T.bg : '#fff') : T.text },
             ]}
           >
             Clases
@@ -536,8 +546,8 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
               <Text
                 style={[
                   styles.chipText,
-                  active && styles.chipTextActive,
-                  { color: active ? T.bg : T.text },
+            active && styles.chipTextActive,
+            { color: active ? '#fff' : T.text },
                 ]}
               >
                 {f}
@@ -552,11 +562,8 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
         <View
           style={[
             styles.menu,
-            {
-              borderColor: T.border,
-              backgroundColor:
-                Platform.OS === "web" ? "rgba(42,42,58,0.7)" : T.card,
-            },
+            { borderColor: T.border, backgroundColor: surface },
+            blurFx,
           ]}
         >
           {[
@@ -621,17 +628,8 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
               key={item.id}
               style={[
                 styles.card,
-                {
-                  borderColor: T.border,
-                  backgroundColor:
-                    Platform.OS === "web" ? "rgba(42,42,58,0.7)" : T.card,
-                },
-                Platform.OS === "web"
-                  ? ({
-                      backdropFilter: "blur(6px)",
-                      WebkitBackdropFilter: "blur(6px)",
-                    } as any)
-                  : {},
+                { borderColor: T.border, backgroundColor: surface },
+                blurFx,
               ]}
             >
               <View style={[styles.leftBar, { backgroundColor: prioColor }]} />
@@ -660,9 +658,10 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
                   <Text style={[styles.cardTitle, { color: HEX.text }]}>
                     {item.title}
                   </Text>
+                  {/* En alumno: la flecha abre el detalle, no la edición */}
                   <TouchableOpacity
                     onPress={() =>
-                      navigation.navigate("ActivityCreate", { editItem: item })
+                      navigation.navigate("ActivityDetail", { activityId: item.id, activity: item })
                     }
                   >
                     <MaterialCommunityIcons
@@ -807,7 +806,24 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
                       </Text>
                     </View>
                   </View>
-                )}
+                  )}
+                  {(() => {
+                    // Si no hay prioridad definida en el documento, mostramos una calculada por fecha
+                    const prio = getPriorityByDueDate(item.dueDate);
+                    if (item.priority || prio === 'ninguna') return null;
+                    const sty = prio === 'alta'
+                      ? { backgroundColor: 'rgba(248,113,113,0.15)', borderColor: T.prioHigh }
+                      : prio === 'media'
+                      ? { backgroundColor: 'rgba(234,179,8,0.15)', borderColor: T.prioMedium }
+                      : { backgroundColor: 'rgba(34,197,94,0.15)', borderColor: T.prioLow };
+                    const label = prio === 'alta' ? 'Alta prioridad' : prio === 'media' ? 'Prioridad media' : 'Prioridad baja';
+                    return (
+                      <View style={[styles.badge, sty]}> 
+                        <MaterialCommunityIcons name={prio === 'alta' ? 'alert-circle' : prio === 'media' ? 'alert' : 'check-circle'} size={14} color={HEX.text} />
+                        <Text style={[styles.badgeText, { color: HEX.text }]}>{label}</Text>
+                      </View>
+                    );
+                  })()}
 
                 {!!(item as any)?.attachments?.length && (
                   <View style={styles.badgesRow}>

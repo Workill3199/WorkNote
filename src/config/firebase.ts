@@ -4,8 +4,8 @@
 import Constants from 'expo-constants';
 import { initializeApp, getApp, getApps, FirebaseApp } from 'firebase/app';
 import { initializeFirestore, Firestore, setLogLevel } from 'firebase/firestore';
-import { initializeAuth, getAuth, Auth } from 'firebase/auth';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { Auth } from 'firebase/auth';
+import { initAuth } from './initAuth';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
 import { Platform } from 'react-native';
 
@@ -77,9 +77,9 @@ if (!hasConfig) {
   });
 
   try {
-    auth = initializeAuth(app);
+    auth = initAuth(app);
   } catch (e) {
-    auth = getAuth(app);
+    console.warn('No se pudo inicializar Auth:', (e as any)?.message || e);
   }
 
   // Firestore: fuerza long polling en entornos no-web para mejorar compatibilidad de red.

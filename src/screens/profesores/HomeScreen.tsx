@@ -10,6 +10,7 @@ import { listWorkshops } from '../../services/workshops';
 import { listStudents } from '../../services/students';
 import { listActivities } from '../../services/activities';
 import { darkColors, lightColors } from '../../theme/colors';
+import { useConfig } from '../../context/ConfigContext';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getUserRole } from '../../services/users';
 
@@ -20,6 +21,7 @@ const { width } = Dimensions.get('window');
 export default function HomeScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const palette = colors.background === darkColors.background ? darkColors : lightColors;
+  const { config, setLightMode, save } = useConfig();
   const insets = useSafeAreaInsets();
   const user = auth?.currentUser || null;
   const username = user?.displayName || user?.email?.split('@')[0] || 'Alex';
@@ -80,20 +82,33 @@ export default function HomeScreen({ navigation }: Props) {
               <Image source={{ uri: photoURL }} style={styles.avatar} />
             ) : (
               <View style={[styles.avatarFallback, { backgroundColor: palette.primary }]}>
-                <Text style={[styles.avatarText, { color: '#fff' }]}>{initial}</Text>
+                <Text style={[styles.avatarText, { color: colors.text }]}>{initial}</Text>
               </View>
             )}
           </TouchableOpacity>
           <View>
             <View style={styles.greetingRow}>
-              <Text style={[styles.greeting, { color: '#fff' }]}>¡Hola, {username}!</Text>
+              <Text style={[styles.greeting, { color: colors.text }]}>¡Hola, {username}!</Text>
               <TouchableOpacity style={styles.editProfileBtn} onPress={() => navigation.navigate('ProfileSettings')} accessibilityLabel="Editar perfil">
-                <MaterialCommunityIcons name="account-edit" size={18} color="#fff" />
+                <MaterialCommunityIcons name="account-edit" size={18} color={colors.text} />
               </TouchableOpacity>
             </View>
             <Text style={[styles.subtitle, { color: palette.textSecondary }]}>Aquí tienes el resumen</Text>
             <Text style={[styles.subtitle, { color: palette.textSecondary }]}>tu rol es: {getRole}</Text>
           </View>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity
+            onPress={async () => { setLightMode(!config.lightMode); await save(); }}
+            accessibilityLabel={config.lightMode ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro'}
+            style={[styles.themeToggle, { backgroundColor: palette.secondary, borderColor: colors.border }]}
+          >
+            <MaterialCommunityIcons
+              name={config.lightMode ? 'moon-waning-crescent' : 'white-balance-sunny'}
+              size={18}
+              color={colors.text}
+            />
+          </TouchableOpacity>
         </View>
         {/* Campana removida del header según solicitud */}
       </View>
@@ -129,7 +144,7 @@ export default function HomeScreen({ navigation }: Props) {
             <View style={[styles.statIconContainer, { backgroundColor: `${palette.primary}20` }]}> 
               <MaterialCommunityIcons name={stat.icon as any} size={18} color={palette.primary} />
             </View>
-            <Text style={[styles.statValue, { color: '#fff' }]}>{stat.value}</Text>
+            <Text style={[styles.statValue, { color: colors.text }]}>{stat.value}</Text>
             <Text style={[styles.statLabel, { color: palette.textSecondary }]}>{stat.label}</Text>
           </View>
         ))}
@@ -143,13 +158,13 @@ export default function HomeScreen({ navigation }: Props) {
         <View style={[styles.cardIconContainer, { backgroundColor: `${palette.primary}20` }]}> 
           <MaterialCommunityIcons name="briefcase" size={14} color={palette.primary} />
         </View>
-        <Text style={[styles.cardTitle, { color: '#fff' }]}>Carga Activa</Text>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Carga Activa</Text>
       </View>
       <View style={styles.cardContent}>
         <View style={styles.progressItem}>
           <View style={styles.progressHeader}>
             <Text style={[styles.progressLabel, { color: palette.textSecondary }]}>Evaluaciones</Text>
-            <Text style={[styles.progressValue, { color: '#fff' }]}>{evaluationsThisWeek}/10</Text>
+            <Text style={[styles.progressValue, { color: colors.text }]}>{evaluationsThisWeek}/10</Text>
           </View>
           <View style={[styles.progressBar, { backgroundColor: `${palette.primary}30` }]}> 
             <View style={[styles.progressFill, { backgroundColor: palette.primary, width: `${(evaluationsThisWeek / 10) * 100}%` }]} />
@@ -158,7 +173,7 @@ export default function HomeScreen({ navigation }: Props) {
         <View style={styles.progressItem}>
           <View style={styles.progressHeader}>
             <Text style={[styles.progressLabel, { color: palette.textSecondary }]}>Clases</Text>
-            <Text style={[styles.progressValue, { color: '#fff' }]}>{classesThisWeek}/12</Text>
+            <Text style={[styles.progressValue, { color: colors.text }]}>{classesThisWeek}/12</Text>
           </View>
           <View style={[styles.progressBar, { backgroundColor: `${palette.primary}30` }]}> 
             <View style={[styles.progressFill, { backgroundColor: palette.primary, width: `${(classesThisWeek / 12) * 100}%` }]} />
@@ -184,7 +199,7 @@ export default function HomeScreen({ navigation }: Props) {
           {actions.map((action, index) => (
             <TouchableOpacity key={index} style={[styles.actionButton, { backgroundColor: palette.card }]} onPress={action.onPress}>
               <MaterialCommunityIcons name={action.icon as any} size={20} color={action.color} />
-              <Text style={[styles.actionLabel, { color: '#fff' }]}>{action.label}</Text>
+              <Text style={[styles.actionLabel, { color: colors.text }]}>{action.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -207,7 +222,7 @@ export default function HomeScreen({ navigation }: Props) {
             <View key={index} style={[styles.deadlineItem, { backgroundColor: palette.card }]}> 
               <MaterialCommunityIcons name={deadline.urgent ? 'alert-circle' : 'clock'} size={16} color={deadline.urgent ? '#EF4444' : '#60A5FA'} />
               <View style={styles.deadlineContent}>
-                <Text style={[styles.deadlineTitle, { color: '#fff' }]}>{deadline.title}</Text>
+                <Text style={[styles.deadlineTitle, { color: colors.text }]}>{deadline.title}</Text>
                 <Text style={[styles.deadlineDate, { color: palette.textSecondary }]}>{deadline.date}</Text>
               </View>
             </View>
@@ -248,8 +263,8 @@ export default function HomeScreen({ navigation }: Props) {
       {/* Barra inferior personalizada eliminada para evitar duplicado con Tab Navigator */}
       <Modal visible={coursePickerOpen} transparent animationType="fade" onRequestClose={() => setCoursePickerOpen(false)}>
         <View style={styles.modalBackdrop}>
-          <View style={[styles.modalBox, { backgroundColor: palette.card, borderColor: 'rgba(255, 255, 255, 0.1)' }] }>
-            <Text style={[styles.modalTitle, { color: '#fff' }]}>Selecciona la clase</Text>
+          <View style={[styles.modalBox, { backgroundColor: palette.card, borderColor: colors.border }] }>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Selecciona la clase</Text>
             {coursePickerLoading ? (
               <ActivityIndicator color={palette.primary} style={{ marginTop: 12 }} />
             ) : (
@@ -259,10 +274,10 @@ export default function HomeScreen({ navigation }: Props) {
                 ) : (
                   <ScrollView style={{ maxHeight: 320 }} contentContainerStyle={{ paddingBottom: 8 }}>
                     {courseItems.map((c) => (
-                      <TouchableOpacity key={c.id} style={[styles.courseItem, { borderColor: 'rgba(255, 255, 255, 0.1)' }]} activeOpacity={0.85} onPress={() => navigateToAttendance(c.id!)}>
+                      <TouchableOpacity key={c.id} style={[styles.courseItem, { borderColor: colors.border }]} activeOpacity={0.85} onPress={() => navigateToAttendance(c.id!)}>
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                           <MaterialCommunityIcons name="book-open-variant" size={18} color={palette.primary} />
-                          <Text style={[styles.courseItemTitle, { color: '#fff' }]}>{c.title}</Text>
+                          <Text style={[styles.courseItemTitle, { color: colors.text }]}>{c.title}</Text>
                         </View>
                         <Text style={[styles.courseItemSubtitle, { color: palette.textSecondary }]}>{[c.classroom, c.schedule].filter(Boolean).join(' · ')}</Text>
                       </TouchableOpacity>
@@ -270,8 +285,8 @@ export default function HomeScreen({ navigation }: Props) {
                   </ScrollView>
                 )}
                 <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12 }}>
-                  <TouchableOpacity onPress={() => setCoursePickerOpen(false)} style={[styles.modalBtn, { borderColor: 'rgba(255, 255, 255, 0.1)' }]}>
-                    <Text style={[styles.modalBtnText, { color: '#fff' }]}>Cancelar</Text>
+                  <TouchableOpacity onPress={() => setCoursePickerOpen(false)} style={[styles.modalBtn, { borderColor: colors.border }]}>
+                    <Text style={[styles.modalBtnText, { color: colors.text }]}>Cancelar</Text>
                   </TouchableOpacity>
                 </View>
               </>
@@ -292,7 +307,7 @@ const styles = StyleSheet.create({
     top: 0,
     zIndex: 50,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomColor: '#0000',
   },
   headerContent: {
     flexDirection: 'row',
@@ -305,6 +320,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+  },
+  themeToggle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
   },
   avatarContainer: {
     width: 40,
@@ -326,11 +349,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '600',
   },
   greeting: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
     lineHeight: 18,
   },
@@ -345,7 +368,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 15,
     marginTop: 2,
   },
   notificationButton: {
@@ -387,7 +410,7 @@ const styles = StyleSheet.create({
   },
   navLabel: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 13,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -410,12 +433,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
     lineHeight: 24,
   },
   statLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '500',
     textAlign: 'center',
     marginTop: 2,
@@ -425,6 +448,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+    boxShadow: '0 6px 16px rgba(0,0,0,0.08)'
   },
   cardHeader: {
     flexDirection: 'row',
@@ -498,6 +527,12 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+    boxShadow: '0 6px 16px rgba(0,0,0,0.08)'
   },
   actionLabel: {
     fontSize: 12,
@@ -515,6 +550,12 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+    boxShadow: '0 6px 16px rgba(0,0,0,0.08)'
   },
   deadlineContent: {
     flex: 1,

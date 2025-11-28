@@ -57,6 +57,44 @@ Notas:
 - `app.config.ts` normaliza `storageBucket` si es necesario.
 - Asegúrate de que el proyecto de Firebase tenga Firestore y Authentication habilitados.
 
+## Configuración de entorno (Subida de archivos)
+
+El servicio de subida en `src/services/file.ts` usa variables de entorno públicas para evitar endpoints y tokens hardcodeados:
+
+```
+EXPO_PUBLIC_UPLOAD_ENDPOINT=https://tu-servidor.com/upload
+EXPO_PUBLIC_UPLOAD_TOKEN=token-seguro
+```
+
+Notas:
+- En producción/web, Expo expone variables con prefijo `EXPO_PUBLIC_` al bundle.
+- Si no defines estas variables, se usará el endpoint por defecto `http://mayola.net.ar:9993/upload` y no se enviará token.
+- Si tu backend espera el token en el cuerpo como `form-data` (campo `token`), mantenlo en `EXPO_PUBLIC_UPLOAD_TOKEN`. Si lo espera por header, ajusta el servicio acorde.
+
+## Integración Google Calendar (web)
+
+Para integrar acceso de solo lectura al Calendario de Google en web se usa Google Identity Services (GIS) y un backend que intercambie el `code` por tokens:
+
+1) Autenticación Google (Firebase Auth, web):
+- `src/services/googleAuth.ts` expone `signInWithGoogleWeb()` usando `signInWithPopup`.
+
+2) Consentimiento de Calendario y obtención de `code` (GIS):
+- `src/services/googleGsi.ts` carga el script `https://accounts.google.com/gsi/client` y solicita `code` con `initCodeClient`.
+- Envía el `code` al backend (`POST /google/exchange`) para obtener `access_token` y `refresh_token`.
+
+3) Backend (necesario):
+- Debes implementar un endpoint `POST /google/exchange` que use `googleapis` para llamar `oAuth2Client.getToken(code)` y guardar tokens en Firestore.
+
+Variables de entorno:
+```
+EXPO_PUBLIC_GOOGLE_CLIENT_ID=tu_client_id.apps.googleusercontent.com
+EXPO_PUBLIC_BACKEND_URL=https://tu-backend.com
+```
+
+Notas:
+- Este flujo (GIS + backend) es necesario para obtener `refresh_token` (`access_type: offline`) y acceder a eventos del día desde servidor.
+- No es posible hacer el intercambio de `code` por tokens en el cliente sin exponer secretos; usa backend.
+
 ## Puesta en marcha (desarrollo)
 
 - Instalar dependencias:

@@ -118,3 +118,17 @@ export async function updateActivity(id: string, input: Partial<Activity>) {
 export async function deleteActivity(id: string) {
   await deleteDoc(doc(db!, 'activities', id));
 }
+
+// Obtiene una actividad por id
+export async function getActivity(id: string): Promise<Activity | null> {
+  try {
+    const ref = doc(db!, 'activities', id);
+    // getDoc directo sobre el documento
+    const { getDoc } = await import('firebase/firestore');
+    const snap = await getDoc(ref);
+    const data = snap.exists() ? (snap.data() as any) : null;
+    return data ? ({ id, ...(data as any) } as Activity) : null;
+  } catch {
+    return null;
+  }
+}

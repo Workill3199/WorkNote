@@ -1,18 +1,29 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, TextInput, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, TextInput, Platform, useWindowDimensions, type DimensionValue } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { listCourses, Course, deleteCourse, joinCourseByShareCode } from '../../services/courses';
 import { auth } from '../../config/firebase';
 import { listStudentsByCourse } from '../../services/students';
 import CourseListItem from '../../components/CourseListItem';
-import { darkColors } from '../../theme/colors';
+import { darkColors, lightColors } from '../../theme/colors';
 import { fonts } from '../../theme/typography';
+import { useConfig } from '../../context/ConfigContext';
 
 type Props = NativeStackScreenProps<any>;
 
 export default function CoursesListScreen({ navigation }: Props) {
+  const { width } = useWindowDimensions();
+  const cols = width < 420 ? 1 : width < 768 ? 2 : 3;
+  const itemWidth: DimensionValue = `${100 / cols}%`;
   const { colors } = useTheme();
+  const { config } = useConfig();
+  const palette = config.lightMode ? lightColors : darkColors;
+  const isWeb = Platform.OS === 'web';
+  const surface = isWeb
+    ? (config.lightMode ? 'rgba(255,255,255,0.55)' : 'rgba(20,25,35,0.5)')
+    : palette.card;
+  const blurFx = isWeb ? ({ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' } as any) : {};
   const [items, setItems] = useState<Course[]>([]);
   const [studentCounts, setStudentCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -76,10 +87,10 @@ export default function CoursesListScreen({ navigation }: Props) {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }] }>
       {/* Header estilo dashboard */}
-      <View style={[styles.header, { borderBottomColor: darkColors.border }] }>
+      <View style={[styles.header, { borderBottomColor: palette.border }] }>
         <Text style={[styles.title, { color: colors.text }]}>Cursos</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <TouchableOpacity style={[styles.addBtn, { backgroundColor: darkColors.accent }]} onPress={() => setJoinOpen(v => !v)}> 
+          <TouchableOpacity style={[styles.addBtn, { backgroundColor: palette.accent }]} onPress={() => setJoinOpen(v => !v)}> 
             <Text style={styles.addText}>Unirme</Text>
           </TouchableOpacity>
         </View>
@@ -91,21 +102,21 @@ export default function CoursesListScreen({ navigation }: Props) {
           <View
             style={[
               styles.joinBox,
-              Platform.OS === 'web'
-                ? ({ backgroundColor: 'rgba(20,25,35,0.5)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' } as any)
-                : { backgroundColor: darkColors.card },
-            ]}
-          >
-            <TextInput
-              placeholder="Código de clase (ABC123)"
-              placeholderTextColor={darkColors.mutedText}
-              value={joinCode}
-              onChangeText={setJoinCode}
-              style={styles.joinInput}
-              autoCapitalize="characters"
-            />
-            <TouchableOpacity
-              style={[styles.joinBtn, { backgroundColor: darkColors.accent }]}
+              isWeb
+                ? ({ backgroundColor: surface, ...blurFx } as any)
+                : { backgroundColor: palette.card },
+          ]}
+        >
+          <TextInput
+            placeholder="Código de clase (ABC123)"
+              placeholderTextColor={palette.mutedText}
+            value={joinCode}
+            onChangeText={setJoinCode}
+            style={styles.joinInput}
+            autoCapitalize="characters"
+          />
+          <TouchableOpacity
+              style={[styles.joinBtn, { backgroundColor: palette.accent }]}
               onPress={async () => {
                 if (!joinCode.trim()) return;
                 setJoining(true);
@@ -137,19 +148,19 @@ export default function CoursesListScreen({ navigation }: Props) {
         <View
           style={[
             styles.searchBox,
-            Platform.OS === 'web'
-              ? ({ backgroundColor: 'rgba(20,25,35,0.5)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' } as any)
-              : { backgroundColor: darkColors.card },
-          ]}
-        >
-          <TextInput
-            placeholder="Buscar por título, aula u horario"
-            placeholderTextColor={darkColors.mutedText}
-            value={query}
-            onChangeText={setQuery}
-            style={styles.searchInput}
-          />
-        </View>
+            isWeb
+              ? ({ backgroundColor: surface, ...blurFx } as any)
+              : { backgroundColor: palette.card },
+        ]}
+      >
+        <TextInput
+          placeholder="Buscar por título, aula u horario"
+          placeholderTextColor={palette.mutedText}
+          value={query}
+          onChangeText={setQuery}
+          style={styles.searchInput}
+        />
+      </View>
       </View>
 
       {/* Filtros de semestre removidos según solicitud */}
@@ -164,7 +175,7 @@ export default function CoursesListScreen({ navigation }: Props) {
       {!loading && (
         <View style={styles.grid}>
           {filtered.map((item) => (
-            <View key={item.id} style={styles.gridItem}>
+            <View key={item.id} style={[styles.gridItem, { width: itemWidth }]}>
               <CourseListItem
                 title={item.title}
                 classroom={item.classroom}
@@ -196,15 +207,15 @@ const styles = StyleSheet.create({
   empty: { marginTop: 12, textAlign: 'center' },
   row: { borderWidth: 1, borderRadius: 10, padding: 12, flexDirection: 'row', alignItems: 'center', marginTop: 8 },
   joinRow: { marginTop: 12, marginBottom: 6 },
-  joinBox: { borderWidth: 1, borderColor: darkColors.border, borderRadius: 12, padding: 8, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  joinBox: { borderWidth: 1, borderRadius: 12, padding: 8, flexDirection: 'row', alignItems: 'center', gap: 8 },
   joinInput: { flex: 1, color: '#fff', fontFamily: fonts.regular, fontSize: 14 },
   joinBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
   searchRow: { marginTop: 12, marginBottom: 6 },
-  searchBox: { borderWidth: 1, borderColor: darkColors.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 },
+  searchBox: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 },
   searchInput: { color: '#fff', fontFamily: fonts.regular, fontSize: 14 },
 
   // Diseño: chips y grid
   // filtros de semestre removidos
   grid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 },
-  gridItem: { width: '50%', paddingHorizontal: 4 },
+  gridItem: { width: '50%' as DimensionValue, paddingHorizontal: 4 },
 });

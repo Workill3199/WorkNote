@@ -4,9 +4,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { darkColors } from '../theme/colors';
+import { darkColors, lightColors } from '../theme/colors';
 import { fonts } from '../theme/typography';
 import { Platform } from 'react-native';
+import { useTheme } from '@react-navigation/native';
+import { useConfig } from '../context/ConfigContext';
 
 // Props del componente: datos del estudiante y callbacks.
 type Props = {
@@ -20,6 +22,14 @@ type Props = {
 };
 
 export default function StudentListItem({ name, email, progress = 0, status = 'Activo', classLabel = 'A', variant = 'row', onPress }: Props) {
+  const { colors } = useTheme() as any;
+  const { config } = useConfig();
+  const palette = config.lightMode ? lightColors : darkColors;
+  const isWeb = Platform.OS === 'web';
+  const cardBg = isWeb
+    ? (config.lightMode ? 'rgba(255,255,255,0.55)' : 'rgba(20,25,35,0.5)')
+    : palette.card;
+  const blurFx = isWeb ? ({ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' } as any) : {};
   // Genera iniciales a partir del nombre para el avatar.
   const initials = name
     .split(' ')
@@ -32,24 +42,24 @@ export default function StudentListItem({ name, email, progress = 0, status = 'A
   if (variant === 'tile') {
     return (
       <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={styles.touch}>
-        <View style={styles.tileCard}>
+        <View style={[styles.tileCard, { borderColor: palette.border, backgroundColor: cardBg, ...blurFx }] }>
           <View style={styles.tileAvatarWrap}>
             <View style={styles.tileAvatar}>
-              <Text style={styles.tileAvatarText}>{initials}</Text>
+              <Text style={[styles.tileAvatarText, { color: palette.primary }]}>{initials}</Text>
             </View>
           </View>
           <View style={styles.tileInfo}>
-            <Text style={styles.tileName}>{name}</Text>
+            <Text style={[styles.tileName, { color: palette.text }]}>{name}</Text>
             <View style={styles.tileBadge}>
-              <Text style={styles.tileBadgeText}>{`Class ${classLabel}`}</Text>
+              <Text style={[styles.tileBadgeText, { color: palette.primary }]}>{`Class ${classLabel}`}</Text>
             </View>
             <View style={styles.progressBox}>
               <View style={styles.progressHeader}>
-                <Text style={styles.progressLabel}>Progreso</Text>
-                <Text style={styles.progressValue}>{progress}%</Text>
+                <Text style={[styles.progressLabel, { color: palette.mutedText }]}>Progreso</Text>
+                <Text style={[styles.progressValue, { color: palette.primary }]}>{progress}%</Text>
               </View>
-              <View style={styles.progressBar}>
-                <View style={[styles.progressFill, { width: `${progress}%` }]} />
+              <View style={[styles.progressBar, { backgroundColor: config.lightMode ? 'rgba(0,0,0,0.08)' : '#2A2F3A' }]}>
+                <View style={[styles.progressFill, { width: `${progress}%`, backgroundColor: palette.primary }]} />
               </View>
             </View>
           </View>
@@ -61,30 +71,30 @@ export default function StudentListItem({ name, email, progress = 0, status = 'A
   // Variante 'row': ítem de lista con email (opcional), progreso y estado.
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.touch}>
-      <View style={styles.card}>
+      <View style={[styles.card, { borderColor: palette.border, backgroundColor: cardBg, ...blurFx }] }>
         <View style={styles.left}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials}</Text>
+            <Text style={[styles.avatarText, { color: palette.primary }]}>{initials}</Text>
           </View>
           <View style={styles.info}>
-            <Text style={styles.name}>{name}</Text>
-            {!!email && <Text style={styles.email}>{email}</Text>}
+            <Text style={[styles.name, { color: palette.text }]}>{name}</Text>
+            {!!email && <Text style={[styles.email, { color: palette.mutedText }]}>{email}</Text>}
             <View style={styles.progressBox}>
               <View style={styles.progressHeader}>
-                <Text style={styles.progressLabel}>Progreso</Text>
-                <Text style={styles.progressValue}>{progress}%</Text>
+                <Text style={[styles.progressLabel, { color: palette.mutedText }]}>Progreso</Text>
+                <Text style={[styles.progressValue, { color: palette.primary }]}>{progress}%</Text>
               </View>
-              <View style={styles.progressBar}>
-                <View style={[styles.progressFill, { width: `${progress}%` }]} />
+              <View style={[styles.progressBar, { backgroundColor: config.lightMode ? 'rgba(0,0,0,0.08)' : '#2A2F3A' }]}>
+                <View style={[styles.progressFill, { width: `${progress}%`, backgroundColor: palette.primary }]} />
               </View>
             </View>
           </View>
         </View>
         <View style={styles.right}>
           <View style={styles.statusBadge}>
-            <Text style={styles.statusText}>{status}</Text>
+            <Text style={[styles.statusText, { color: palette.text }]}>{status}</Text>
           </View>
-          <MaterialCommunityIcons name="chevron-right" size={20} color={darkColors.mutedText} />
+          <MaterialCommunityIcons name="chevron-right" size={20} color={palette.mutedText} />
         </View>
       </View>
     </TouchableOpacity>
@@ -98,14 +108,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: darkColors.border,
     borderRadius: 12,
     padding: 12,
     marginVertical: 6,
-    backgroundColor: Platform.OS === 'web' ? 'rgba(20,25,35,0.5)' : darkColors.card,
-    ...(Platform.OS === 'web'
-      ? ({ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' } as any)
-      : {}),
   },
   left: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   avatar: {
@@ -117,40 +122,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 12,
   },
-  avatarText: { color: darkColors.primary, fontFamily: fonts.medium, fontSize: 12 },
+  avatarText: { fontFamily: fonts.medium, fontSize: 12 },
   info: { flex: 1 },
-  name: { color: '#fff', fontFamily: fonts.medium, fontSize: 14 },
-  email: { color: darkColors.mutedText, fontFamily: fonts.regular, fontSize: 12 },
+  name: { fontFamily: fonts.medium, fontSize: 14 },
+  email: { fontFamily: fonts.regular, fontSize: 12 },
   progressBox: { marginTop: 8 },
   progressHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  progressLabel: { color: darkColors.mutedText, fontSize: 11 },
-  progressValue: { color: darkColors.primary, fontFamily: fonts.bold, fontSize: 13 },
-  progressBar: { height: 6, backgroundColor: '#2A2F3A', borderRadius: 6, overflow: 'hidden' },
-  progressFill: { height: '100%', backgroundColor: darkColors.primary, borderRadius: 6 },
+  progressLabel: { fontSize: 11 },
+  progressValue: { fontFamily: fonts.bold, fontSize: 13 },
+  progressBar: { height: 6, borderRadius: 6, overflow: 'hidden' },
+  progressFill: { height: '100%', borderRadius: 6 },
   right: { alignItems: 'flex-end', gap: 8 },
   statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: darkColors.border,
     backgroundColor: 'rgba(110,120,255,0.08)',
   },
-  statusText: { color: '#fff', fontSize: 10 },
+  statusText: { fontSize: 10 },
 
   // Tile styles (web design)
   tileCard: {
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: darkColors.border,
     borderRadius: 12,
     padding: 16,
     marginVertical: 6,
-    backgroundColor: Platform.OS === 'web' ? 'rgba(20,25,35,0.5)' : darkColors.card,
-    ...(Platform.OS === 'web'
-      ? ({ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' } as any)
-      : {}),
   },
   tileAvatarWrap: { alignItems: 'center', justifyContent: 'center' },
   tileAvatar: {
@@ -162,9 +161,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 12,
   },
-  tileAvatarText: { color: darkColors.primary, fontFamily: fonts.medium, fontSize: 16 },
+  tileAvatarText: { fontFamily: fonts.medium, fontSize: 16 },
   tileInfo: { width: '100%', alignItems: 'center' },
-  tileName: { color: '#fff', fontFamily: fonts.medium, fontSize: 14, textAlign: 'center' },
+  tileName: { fontFamily: fonts.medium, fontSize: 14, textAlign: 'center' },
   tileBadge: {
     marginTop: 6,
     borderWidth: 1,
@@ -174,5 +173,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
-  tileBadgeText: { color: darkColors.primary, fontSize: 10 },
+  tileBadgeText: { fontSize: 10 },
 });
