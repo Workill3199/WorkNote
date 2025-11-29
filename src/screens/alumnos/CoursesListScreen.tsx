@@ -6,6 +6,7 @@ import { listCourses, Course, deleteCourse, joinCourseByShareCode } from '../../
 import { auth } from '../../config/firebase';
 import { listStudentsByCourse } from '../../services/students';
 import CourseListItem from '../../components/CourseListItem';
+import ScreenContainer from '../../components/ScreenContainer';
 import { darkColors, lightColors } from '../../theme/colors';
 import { fonts } from '../../theme/typography';
 import { useConfig } from '../../context/ConfigContext';
@@ -85,7 +86,7 @@ export default function CoursesListScreen({ navigation }: Props) {
   }, [items, query]);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }] }>
+    <ScreenContainer contentPadding={16}>
       {/* Header estilo dashboard */}
       <View style={[styles.header, { borderBottomColor: palette.border }] }>
         <Text style={[styles.title, { color: colors.text }]}>Cursos</Text>
@@ -193,7 +194,7 @@ export default function CoursesListScreen({ navigation }: Props) {
           ))}
         </View>
       )}
-    </View>
+    </ScreenContainer>
   );
 }
 

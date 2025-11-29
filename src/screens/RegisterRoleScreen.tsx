@@ -1,12 +1,13 @@
 // Pantalla de selección de rol (raíz).
 // Permite elegir entre Profesor o Alumno y navega al registro.
 import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { fonts } from '../theme/typography';
 import { darkColors, lightColors } from '../theme/colors';
 import NeonButton from '../components/NeonButton';
+import ScreenContainer from '../components/ScreenContainer';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useConfig } from '../context/ConfigContext';
 
@@ -21,12 +22,16 @@ export default function RegisterRoleScreen({ navigation }: Props) {
     setLightMode(!config.lightMode);
     await save();
     if (isWeb) {
-      try { (document.documentElement as any).style.colorScheme = !config.lightMode ? 'light' : 'dark'; } catch {}
+      try {
+        if (typeof document !== 'undefined') {
+          (document.documentElement as any).style.colorScheme = !config.lightMode ? 'light' : 'dark';
+        }
+      } catch {}
     }
   };
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.background }] }>
+    <ScreenContainer center contentPadding={24}>
       <View style={{ position: 'absolute', right: 16, top: 16 }}>
         <TouchableOpacity
           onPress={onToggleTheme}
@@ -43,7 +48,6 @@ export default function RegisterRoleScreen({ navigation }: Props) {
           <Text style={{ color: colors.text, fontFamily: fonts.medium, fontSize: 12 }}>{config.lightMode ? 'Oscuro' : 'Claro'}</Text>
         </TouchableOpacity>
       </View>
-      {/* Logo superior */}
       <View style={styles.logoWrap}>
         <Image source={require('../../assets/logoA.png')} style={styles.logoImage} resizeMode="contain" />
       </View>
@@ -71,18 +75,18 @@ export default function RegisterRoleScreen({ navigation }: Props) {
           textStyle={styles.buttonText}
         />
       </View>
-    </View>
+    </ScreenContainer>
   );
 }
 
 // Estilos base consistentes con el tema
 const styles = StyleSheet.create({
-  screen: { flex: 1, paddingHorizontal: 16, justifyContent: 'center' },
+  screen: { flex: 1, paddingHorizontal: 16 },
   logoWrap: { alignItems: 'center', marginBottom: 12 },
   logoImage: { width: 72, height: 72 },
   brand: { fontSize: 24, fontFamily: fonts.brand, textAlign: 'center', marginBottom: 8 },
-  title: { fontSize: 28, fontFamily: fonts.brand, textAlign: 'center' },
-  subtitle: { fontSize: 14, fontFamily: fonts.medium, textAlign: 'center', marginTop: 6, marginBottom: 18 },
+  title: { fontSize: 24, fontFamily: fonts.brand, textAlign: 'center' },
+  subtitle: { fontSize: 14, fontFamily: fonts.medium, textAlign: 'center', marginTop: 6, marginBottom: 12 },
   button: { paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginTop: 8 },
   buttonText: { fontSize: 15, fontFamily: fonts.bold },
 });

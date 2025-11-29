@@ -7,6 +7,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { listStudents, Student, deleteStudent, listStudentsByCourse, listStudentsByWorkshop } from '../../services/students';
 import { listCourses, Course } from '../../services/courses';
 import NeonButton from '../../components/NeonButton';
+import ScreenContainer from '../../components/ScreenContainer';
 import StudentListItem from '../../components/StudentListItem';
 import { fonts } from '../../theme/typography';
 import { darkColors, lightColors } from '../../theme/colors';
@@ -87,7 +88,7 @@ export default function StudentsListScreen({ navigation, route }: Props) {
   }, [items, query, selectedCourseId]);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }] }>
+    <ScreenContainer contentPadding={16}>
       {/* Header estilo dashboard: título + acciones rápidas */}
       <View style={[styles.header, { borderBottomColor: palette.border }] }>
         <Text style={[styles.title, { color: colors.text }]}>Estudiantes</Text>
@@ -188,7 +189,7 @@ export default function StudentsListScreen({ navigation, route }: Props) {
           </>
         )
       )}
-    </View>
+    </ScreenContainer>
   );
 }
 

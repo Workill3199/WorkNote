@@ -5,6 +5,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { darkColors, lightColors } from '../theme/colors';
 import { fonts } from '../theme/typography';
 import NeonButton from '../components/NeonButton';
+import ScreenContainer from '../components/ScreenContainer';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useConfig } from '../context/ConfigContext';
 
@@ -19,14 +20,18 @@ export default function PortadaScreen({ navigation }: Props) {
     setLightMode(!config.lightMode);
     await save();
     if (isWeb) {
-      try { (document.documentElement as any).style.colorScheme = !config.lightMode ? 'light' : 'dark'; } catch {}
+      try {
+        if (typeof document !== 'undefined') {
+          (document.documentElement as any).style.colorScheme = !config.lightMode ? 'light' : 'dark';
+        }
+      } catch {}
     }
   };
 
   const heroSource = config.lightMode ? require('../../assets/logoL.png') : require('../../assets/principal.png');
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }] }>
+    <ScreenContainer center contentPadding={24}>
       <View style={{ position: 'absolute', right: 16, top: 16 }}>
         <TouchableOpacity
           onPress={onToggleTheme}
@@ -43,7 +48,6 @@ export default function PortadaScreen({ navigation }: Props) {
           <Text style={{ color: colors.text, fontFamily: fonts.medium, fontSize: 12 }}>{config.lightMode ? 'Oscuro' : 'Claro'}</Text>
         </TouchableOpacity>
       </View>
-      {/* Logo y marca (igual al login) */}
       <View style={styles.logoWrap}>
         <Image source={heroSource} style={styles.heroImage} resizeMode="contain" />
       </View>
@@ -72,17 +76,17 @@ export default function PortadaScreen({ navigation }: Props) {
         shadowRadius={16}
         elevation={10}
       />
-    </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 24, justifyContent: 'center' },
-  logoWrap: { alignItems: 'center', marginBottom: 12 },
-  heroImage: { width: 280, height: 280 },
-  brand: { fontSize: 24, fontFamily: fonts.brand, textAlign: 'center', marginBottom: 8 },
-  title: { fontSize: 28, fontFamily: fonts.brand, textAlign: 'center' },
-  subtitle: { fontSize: 14, fontFamily: fonts.medium, textAlign: 'center', marginTop: 6, marginBottom: 18 },
+  container: { flex: 1, paddingHorizontal: 24 },
+  logoWrap: { alignItems: 'center', marginBottom: 8 },
+  heroImage: { width: 160, height: 160 },
+  brand: { fontSize: 24, fontFamily: fonts.brand, textAlign: 'center', marginBottom: 6 },
+  title: { fontSize: 24, fontFamily: fonts.brand, textAlign: 'center' },
+  subtitle: { fontSize: 14, fontFamily: fonts.medium, textAlign: 'center', marginTop: 6, marginBottom: 12 },
   button: { paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginTop: 8 },
   buttonText: { fontSize: 16, fontFamily: fonts.bold },
 });

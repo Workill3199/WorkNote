@@ -157,7 +157,7 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
     <SafeAreaView style={{ flex: 1, backgroundColor: T.bg }}>
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={[styles.container, { paddingTop: Math.max(insets.top, 8), paddingBottom: 24 }]}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: Math.max(insets.top, 8), paddingBottom: 24 }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -166,7 +166,8 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
           <MaterialCommunityIcons name="clipboard-list" size={18} color={T.text} />
           <Text style={[styles.title, { color: T.text }]}>Actividades</Text>
         </View>
-        <View style={styles.headerRight}>
+      </View>
+      <View style={[styles.headerRight, { marginBottom: 8 }]}>
           {(((route as any)?.params?.filterCourseId as string | undefined) || ((route as any)?.params?.filterWorkshopId as string | undefined)) && (
             <NeonButton
               title="Alumnos"
@@ -223,7 +224,6 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
             textStyle={styles.addText}
           />
       </View>
-      </View>
 
     {/* Popup de código de clase */}
     {codeOpen && (
@@ -255,25 +255,27 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
       </View>
     )}
 
-      {/* Barra de búsqueda (glass) */}
-      <View style={styles.searchRow}>
-        <View
-          style={[
-            styles.searchBox,
-            { backgroundColor: surface, borderColor: T.border },
-            blurFx,
-          ]}
-        >
-          <MaterialCommunityIcons name="magnify" size={16} color={T.accent} />
-          <TextInput
-            placeholder="Buscar actividades..."
-            placeholderTextColor={T.textMuted}
-            value={query}
-            onChangeText={setQuery}
-            style={[styles.searchInput, { color: T.text }]}
-          />
+      {/* Barra de búsqueda (glass) oculta cuando se filtra por clase/taller */}
+      {!(filterCourseId || filterWorkshopId) && (
+        <View style={styles.searchRow}>
+          <View
+            style={[
+              styles.searchBox,
+              { backgroundColor: surface, borderColor: T.border },
+              blurFx,
+            ]}
+          >
+            <MaterialCommunityIcons name="magnify" size={16} color={T.accent} />
+            <TextInput
+              placeholder="Buscar actividades..."
+              placeholderTextColor={T.textMuted}
+              value={query}
+              onChangeText={setQuery}
+              style={[styles.searchInput, { color: T.text }]}
+            />
+          </View>
         </View>
-      </View>
+      )}
 
       {/* Filtros horizontales - removidos filtros de prioridad */}
       <View style={styles.filtersRow}>
@@ -385,7 +387,7 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
+  container: { padding: 16 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 as any },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 as any },

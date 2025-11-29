@@ -47,6 +47,7 @@ export function FileUpload({
 
   // --- Web file selection ---
   function handleWebFileSelection() {
+    if (typeof document === 'undefined') return;
     const input = document.createElement('input');
     input.type = 'file';
     input.multiple = multiple;
@@ -71,7 +72,7 @@ export function FileUpload({
       onFilesSelected?.(newFiles);
     };
 
-    input.click();
+    try { input.click(); } catch {}
   }
 
   // --- Mobile file selection ---

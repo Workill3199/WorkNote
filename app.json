@@ -1,7 +1,6 @@
 {
   "expo": {
     "name": "WorkNote",
-    "display": "standalone",
     "slug": "WorkNote",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -23,12 +22,15 @@
     "android": {
       "package": "com.workill3199.worknote",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/logoN.png",
         "backgroundColor": "#0A1929"
       }
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "manifest": {
+        "display": "standalone"
+      }
     },
     "extra": {
       "firebase": {

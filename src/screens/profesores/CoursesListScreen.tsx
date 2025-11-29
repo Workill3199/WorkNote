@@ -1,13 +1,13 @@
 // Pantalla de listado de cursos para profesores.
 // Permite buscar, unirse por código, crear, editar y eliminar cursos.
 import React, { useEffect, useMemo, useState } from 'react'; // React y hooks básicos
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, TextInput, Platform, useWindowDimensions, type DimensionValue } from 'react-native'; // Componentes RN
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, TextInput, Platform, useWindowDimensions, type DimensionValue } from 'react-native';
 import { useTheme } from '@react-navigation/native'; // Acceso a colores del tema
 import { NativeStackScreenProps } from '@react-navigation/native-stack'; // Tipos de navegación
 import { listCourses, Course, deleteCourse, joinCourseByShareCode, ensureCourseShareCode } from '../../services/courses'; // Servicios de cursos
 import { auth } from '../../config/firebase'; // Autenticación (para verificar dueño de curso)
 import { listStudentsByCourse } from '../../services/students'; // Servicio para contar estudiantes por curso
-import CourseListItem from '../../components/CourseListItem'; // Item para grid web
+import CourseListItem from '../../components/CourseListItem';
 import { darkColors, lightColors } from '../../theme/colors'; // Paleta fija
 import { fonts } from '../../theme/typography'; // Tipografías
 import { useConfig } from '../../context/ConfigContext';
@@ -88,7 +88,7 @@ export default function CoursesListScreen({ navigation }: Props) {
   }, [items, query]);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }] }>
+    <ScreenContainer contentPadding={16}>
       {/* Header estilo dashboard */}
       <View style={[styles.header, { borderBottomColor: HEX.border }] }>
         <Text style={[styles.title, { color: colors.text }]}>Cursos</Text>
@@ -205,7 +205,7 @@ export default function CoursesListScreen({ navigation }: Props) {
           ))}
         </View>
       )}
-    </View>
+    </ScreenContainer>
   );
 }
 
@@ -248,3 +248,4 @@ const styles = StyleSheet.create({
       Alert.alert('Error', e?.message ?? 'No se pudo obtener el código de la clase');
     }
   };
+import ScreenContainer from '../../components/ScreenContainer';

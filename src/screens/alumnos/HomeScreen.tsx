@@ -249,7 +249,7 @@ export default function HomeScreen({ navigation }: Props) {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background, paddingTop: insets.top }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: palette.background, paddingTop: Math.max(insets.top - 8, 0) }]}>
       <DashboardHeader />
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <StatsCards />
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingVertical: 12,
   },
   userInfo: {
     flexDirection: 'row',

@@ -7,6 +7,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { listWorkshops, Workshop, deleteWorkshop } from '../../services/workshops';
 import { listStudents, Student } from '../../services/students';
 import ManagementCard from '../../components/ManagementCard';
+import ScreenContainer from '../../components/ScreenContainer';
 
 type Props = NativeStackScreenProps<any>;
 
@@ -51,7 +52,7 @@ export default function WorkshopsListScreen({ navigation }: Props) {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }] }>
+    <ScreenContainer contentPadding={16}>
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.text }]}>Talleres</Text>
         {/* Acción para crear taller */}
@@ -87,7 +88,7 @@ export default function WorkshopsListScreen({ navigation }: Props) {
           onViewActivities={() => navigation.navigate('Activities', { filterWorkshopId: item.id })}
         />
       ))}
-    </View>
+    </ScreenContainer>
   );
 }
 

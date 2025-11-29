@@ -31,7 +31,6 @@ export default function CourseCreateScreen({ navigation, route }: Props) {
     return out;
   };
   const handleScheduleChange = (text: string) => setSchedule(maskSchedule(text));
-  const [semester, setSemester] = useState(editItem?.semester || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,9 +48,9 @@ export default function CourseCreateScreen({ navigation, route }: Props) {
     setLoading(true);
     try {
       if (editItem?.id) {
-        await updateCourse(editItem.id, { title: title.trim(), description: description.trim(), classroom: classroom.trim(), schedule: scheduleValue, semester: semester.trim() });
+        await updateCourse(editItem.id, { title: title.trim(), description: description.trim(), classroom: classroom.trim(), schedule: scheduleValue });
       } else {
-        await createCourse({ title: title.trim(), description: description.trim(), classroom: classroom.trim(), schedule: scheduleValue, semester: semester.trim() });
+        await createCourse({ title: title.trim(), description: description.trim(), classroom: classroom.trim(), schedule: scheduleValue });
       }
       navigation.goBack();
     } catch (e: any) {
@@ -106,14 +105,7 @@ export default function CourseCreateScreen({ navigation, route }: Props) {
         />
         <Text style={[styles.hint, { color: colors.mutedText ?? colors.text }]}>Formato 24h. Ej: 08:00 - 09:30</Text>
 
-        <Text style={[styles.label, { color: colors.text }]}>Semestre</Text>
-        <TextInput
-          style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-          placeholder="Ej: 2025-1"
-          placeholderTextColor={colors.text}
-          value={semester}
-          onChangeText={setSemester}
-        />
+        
 
         <TouchableOpacity style={[styles.button, { backgroundColor: colors.primary }]} onPress={onSave} disabled={loading}>
           {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{editItem?.id ? 'Actualizar' : 'Guardar'}</Text>}

@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Platform, Alert, TextInput } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { darkColors } from '../../theme/colors';
+import { darkColors, lightColors } from '../../theme/colors';
 import { fonts } from '../../theme/typography';
 import { Activity, getActivity } from '../../services/activities';
 import { listCommentsByActivity, createComment, Comment, subscribeCommentsByActivity, deleteComment } from '../../services/comments';
@@ -15,13 +16,18 @@ import { FileUpload, SelectedFile } from '../../components/files';
 import { uploadFilesToServer } from '../../services/file';
 import { createSubmission, listSubmissionsByActivity, Submission, updateSubmission } from '../../services/submissions';
 import { auth } from '../../config/firebase';
+import { useConfig } from '../../context/ConfigContext';
 import { getUserRole, getLastSelectedRole } from '../../utils/roles';
 
 type Props = NativeStackScreenProps<any>;
 
 export default function ActivityDetailScreen({ navigation, route }: Props) {
   const { colors } = useTheme();
-  const T = darkColors;
+  const { config } = useConfig();
+  const palette = config.lightMode ? lightColors : darkColors;
+  const T = palette;
+  const isWeb = Platform.OS === 'web';
+  const insets = useSafeAreaInsets();
   const activityFromRoute = (route as any)?.params?.activity as Activity | undefined;
   const activityId = (route as any)?.params?.activityId as string | undefined;
   const [activity, setActivity] = useState<Activity | undefined>(activityFromRoute);
@@ -187,8 +193,12 @@ export default function ActivityDetailScreen({ navigation, route }: Props) {
   ), [activity?.priority]);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      <ScrollView
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: Math.max(insets.top, 8), paddingBottom: 120 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         {!activity ? (
           loading ? (
             <ActivityIndicator color={colors.primary} />
@@ -198,7 +208,7 @@ export default function ActivityDetailScreen({ navigation, route }: Props) {
         ) : (
           <View style={styles.twoCol}>
             {/* Columna principal (izquierda) */}
-            <View style={[styles.card, Platform.OS === 'web' ? ({ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' } as any) : {}] }>
+            <View style={[styles.card, { borderColor: colors.border, backgroundColor: isWeb ? (config.lightMode ? 'rgba(255,255,255,0.60)' : 'rgba(42,42,58,0.7)') : colors.card }, isWeb ? ({ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' } as any) : {}] }>
               <View style={[styles.leftBar, { backgroundColor: prioColor }]} />
               <View style={styles.cardContent}>
                 <View style={styles.headerRow}>
@@ -206,7 +216,7 @@ export default function ActivityDetailScreen({ navigation, route }: Props) {
                     <MaterialCommunityIcons name="clipboard-text" size={18} color={colors.text} />
                     <Text style={[styles.title, { color: colors.text, marginLeft: 6 }]}>{activity.title}</Text>
                   </View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 as any }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 as any, flexWrap: 'wrap' }}>
                     {!!activity.dueDate && (
                       <View style={[styles.badge, { borderColor: prioColor }] }>
                         <MaterialCommunityIcons name="calendar" size={14} color={colors.text} />
@@ -223,7 +233,7 @@ export default function ActivityDetailScreen({ navigation, route }: Props) {
                 </View>
 
                 {!!activity.description && (
-                  <Text style={[styles.desc, { color: T.mutedText }]}>{activity.description}</Text>
+                  <Text style={[styles.desc, { color: colors.text }]}>{activity.description}</Text>
                 )}
 
                 {/* Adjuntos */}
@@ -241,7 +251,7 @@ export default function ActivityDetailScreen({ navigation, route }: Props) {
                 )}
 
                 {/* Comentarios de la clase */}
-                <View style={styles.section}>
+                  <View style={styles.section}>
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <MaterialCommunityIcons name="account-multiple" size={18} color={colors.text} />
                     <Text style={[styles.sectionTitle, { color: colors.text, marginLeft: 6 }]}>Comentarios de la clase</Text>
@@ -328,7 +338,7 @@ export default function ActivityDetailScreen({ navigation, route }: Props) {
           </View>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -349,14 +359,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   leftBar: { width: 6, borderTopLeftRadius: 16, borderBottomLeftRadius: 16 },
-  cardContent: { padding: 16 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { fontSize: 18, fontFamily: fonts.bold },
+  cardContent: { padding: 20 },
+  headerRow: { flexDirection: 'column', alignItems: 'flex-start', gap: 8 as any },
+  title: { fontSize: 20, fontFamily: fonts.bold },
   desc: { marginTop: 8, fontSize: 14, fontFamily: fonts.regular },
   badge: { flexDirection: 'row', alignItems: 'center', gap: 6 as any, borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
   badgeText: { fontSize: 12, fontFamily: fonts.medium },
   section: { marginTop: 16 },
-  sectionTitle: { fontSize: 16, fontFamily: fonts.bold, marginBottom: 8 },
+  sectionTitle: { fontSize: 18, fontFamily: fonts.bold, marginBottom: 8 },
   attachmentRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 10, marginBottom: 8 },
   attachmentText: { flex: 1, marginLeft: 8, fontSize: 14, fontFamily: fonts.medium },
   commentInputRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8 },

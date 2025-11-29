@@ -95,6 +95,7 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
       // Web: usar descarga directa por <a download>
       if (Platform.OS === 'web') {
         try {
+          if (typeof document === 'undefined') return url;
           const a = document.createElement('a');
           a.href = url;
           a.download = filename || 'archivo';
@@ -421,62 +422,60 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
     <SafeAreaView style={{ flex: 1, backgroundColor: T.bg }}>
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={[styles.container, { paddingTop: Math.max(insets.top, 8), paddingBottom: 24 }]}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: Math.max(insets.top, 8), paddingBottom: 24 }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <MaterialCommunityIcons
-            name="clipboard-list"
-            size={18}
-            color={T.text}
-          />
+          {(navigation as any)?.canGoBack?.() && (
+            <TouchableOpacity onPress={() => navigation.goBack()} accessibilityLabel="Volver">
+              <MaterialCommunityIcons name="arrow-left" size={18} color={T.text} />
+            </TouchableOpacity>
+          )}
+          <MaterialCommunityIcons name="clipboard-list" size={18} color={T.text} />
           <Text style={[styles.title, { color: T.text }]}>Actividades</Text>
         </View>
-        <View style={styles.headerActions}>
-          {!!filterCourseId && (
-            <NeonButton
-              title="Alumnos"
-              onPress={() =>
-                navigation.navigate("StudentStudents", { filterCourseId })
-              }
-              colors={{ ...colors, primary: T.accent } as any}
-              shadowRadius={12}
-              elevation={6}
-              style={[
-                styles.addBtn,
-                { backgroundColor: T.accent, marginRight: 8 },
-              ]}
-              textStyle={styles.addText}
-            />
-          )}
-        </View>
+      </View>
+      <View style={[styles.headerActions, { marginBottom: 8 }]}>
+        {!!filterCourseId && (
+          <NeonButton
+            title="Alumnos"
+            onPress={() => navigation.navigate("StudentStudents", { filterCourseId })}
+            colors={{ ...colors, primary: T.accent } as any}
+            shadowRadius={12}
+            elevation={6}
+            style={[styles.addBtn, { backgroundColor: T.accent, marginRight: 8 }]}
+            textStyle={styles.addText}
+          />
+        )}
       </View>
 
       {/* (Popup de clases movido debajo del buscador) */}
 
       {/* Alumnos: no se muestra popup de código */}
 
-      {/* Barra de búsqueda (glass) */}
-      <View style={styles.searchRow}>
-        <View
-          style={[
-            styles.searchBox,
-            { backgroundColor: surface, borderColor: T.border },
-            blurFx,
-          ]}
-        >
-          <MaterialCommunityIcons name="magnify" size={16} color={T.accent} />
-          <TextInput
-            placeholder="Buscar actividades..."
-            placeholderTextColor={T.textMuted}
-            value={query}
-            onChangeText={setQuery}
-            style={[styles.searchInput, { color: T.text }]}
-          />
+      {/* Barra de búsqueda (glass) oculta dentro de clase para evitar bloque vacío */}
+      {!filterCourseId && (
+        <View style={styles.searchRow}>
+          <View
+            style={[
+              styles.searchBox,
+              { backgroundColor: surface, borderColor: T.border },
+              blurFx,
+            ]}
+          >
+            <MaterialCommunityIcons name="magnify" size={16} color={T.accent} />
+            <TextInput
+              placeholder="Buscar actividades..."
+              placeholderTextColor={T.textMuted}
+              value={query}
+              onChangeText={setQuery}
+              style={[styles.searchInput, { color: T.text }]}
+            />
+          </View>
         </View>
-      </View>
+      )}
 
       {/* (Popup de clases reubicado debajo del filtrador) */}
 
@@ -658,35 +657,14 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
                   <Text style={[styles.cardTitle, { color: HEX.text }]}>
                     {item.title}
                   </Text>
-                  {/* En alumno: la flecha abre el detalle, no la edición */}
                   <TouchableOpacity
-                    onPress={() =>
-                      navigation.navigate("ActivityDetail", { activityId: item.id, activity: item })
-                    }
+                    onPress={() => {
+                      navigation.navigate("ActivityDetail", { activityId: item.id, activity: item });
+                    }}
+                    activeOpacity={0.9}
+                    style={[styles.addBtn, { backgroundColor: T.primary, marginLeft: 8 }]}
                   >
-                    <MaterialCommunityIcons
-                      name="chevron-right"
-                      size={18}
-                      color={T.accent}
-                    />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => openSubmit(item)}
-                    style={[
-                      styles.badge,
-                      {
-                        backgroundColor: "transparent",
-                        borderColor: T.accent,
-                        marginLeft: 8,
-                      },
-                    ]}
-                  >
-                    <MaterialCommunityIcons
-                      name="send"
-                      size={14}
-                      color={T.accent}
-                    />
-                    <Text style={[styles.badgeText, { color: T.accent }]}>Entregar</Text>
+                    <Text style={styles.addText}>Ver detalle</Text>
                   </TouchableOpacity>
                 </View>
                 {!!item.description && (
@@ -958,7 +936,7 @@ export default function ActivitiesListScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 16, paddingTop: 16 },
+  container: { paddingHorizontal: 16, paddingTop: 16 },
   header: {
     flexDirection: "row",
     alignItems: "center",

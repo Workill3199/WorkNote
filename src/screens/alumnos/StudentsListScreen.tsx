@@ -5,6 +5,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { listStudents, Student, deleteStudent, listStudentsByCourse, listStudentsByWorkshop } from '../../services/students';
 import { listCourses, Course } from '../../services/courses';
 import StudentListItem from '../../components/StudentListItem';
+import ScreenContainer from '../../components/ScreenContainer';
 import { fonts } from '../../theme/typography';
 import { darkColors, lightColors } from '../../theme/colors';
 import { useConfig } from '../../context/ConfigContext';
@@ -79,7 +80,7 @@ export default function StudentsListScreen({ navigation, route }: Props) {
   }, [items, query, selectedCourseId]);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }] }>
+    <ScreenContainer contentPadding={16}>
       {/* Header estilo dashboard */}
       <View style={[styles.header, { borderBottomColor: palette.border }] }>
         <Text style={[styles.title, { color: colors.text }]}>Estudiantes</Text>
@@ -165,7 +166,7 @@ export default function StudentsListScreen({ navigation, route }: Props) {
           </>
         )
       )}
-    </View>
+    </ScreenContainer>
   );
 }
 

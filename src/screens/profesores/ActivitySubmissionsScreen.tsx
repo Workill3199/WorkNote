@@ -84,6 +84,7 @@ export default function ActivitySubmissionsScreen({ route }: Props) {
   const onOpenAttachment = async (url: string, name?: string) => {
     try {
       if (Platform.OS === 'web') {
+        if (typeof document === 'undefined') return;
         const a = document.createElement('a');
         a.href = url;
         a.target = '_blank';

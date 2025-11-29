@@ -13,6 +13,7 @@ const CALENDAR_READONLY_SCOPE = 'https://www.googleapis.com/auth/calendar.readon
 export async function loadGsiClient(): Promise<void> {
   if (Platform.OS !== 'web') return; // Solo web
   if (window.google?.accounts?.oauth2) return; // ya cargado
+  if (typeof document === 'undefined') return; // protección extra para entornos no-DOM
   await new Promise<void>((resolve, reject) => {
     const script = document.createElement('script');
     script.src = GSI_SRC;

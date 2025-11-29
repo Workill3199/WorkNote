@@ -9,6 +9,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { fonts } from '../../theme/typography';
 import { darkColors, lightColors } from '../../theme/colors';
 import NeonButton from '../../components/NeonButton';
+import ScreenContainer from '../../components/ScreenContainer';
 import { createUser } from '../../services/users';
 
 type Props = NativeStackScreenProps<any>;
@@ -84,7 +85,7 @@ export default function RegisterScreen({ navigation, route }: Props) {
   };
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.background }] }>
+    <ScreenContainer contentPadding={16}>
 
       {/* Título y subtítulo */}
       <Text style={[styles.title, { color: colors.text }]}>Crear cuenta</Text>
@@ -172,7 +173,7 @@ export default function RegisterScreen({ navigation, route }: Props) {
           <Text style={[styles.loginLink, { color: colors.text }]}> Iniciar sesión</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </ScreenContainer>
   );
 }
 

@@ -10,6 +10,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { fonts } from '../theme/typography';
 import { darkColors, lightColors } from '../theme/colors';
 import NeonButton from '../components/NeonButton';
+import ScreenContainer from '../components/ScreenContainer';
 import { getUserRole } from '../services/users';
 import { useConfig } from '../context/ConfigContext';
 
@@ -30,7 +31,9 @@ export default function LoginScreen({ navigation }: Props) {
     await save();
     if (isWeb) {
       try {
-        (document.documentElement as any).style.colorScheme = !config.lightMode ? 'light' : 'dark';
+        if (typeof document !== 'undefined') {
+          (document.documentElement as any).style.colorScheme = !config.lightMode ? 'light' : 'dark';
+        }
       } catch {}
     }
   };
@@ -65,7 +68,7 @@ export default function LoginScreen({ navigation }: Props) {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }] }>
+    <ScreenContainer center contentPadding={24}>
       <View style={{ position: 'absolute', right: 16, top: 16 }}>
         <TouchableOpacity
           onPress={onToggleTheme}
@@ -147,7 +150,7 @@ export default function LoginScreen({ navigation }: Props) {
           <Text style={[styles.signupLink, { color: colors.text }]}> Regístrate</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </ScreenContainer>
   );
 }
 
